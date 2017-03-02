@@ -71,8 +71,7 @@ func serveCommandHandler(cmd *cobra.Command, args []string) {
 	cluster := viper.GetString(props.NatsClusterProp)
 	natsURL := viper.GetString(props.NatsURLProp)
 	var dat []map[string]interface{}
-	log.Println(cluster)
-	log.Println(natsURL)
+
 	for _, table := range tables {
 
 		tableJSON, err := getJSON(db, "select * from "+table)
@@ -80,7 +79,10 @@ func serveCommandHandler(cmd *cobra.Command, args []string) {
 			log.Printf("unable to convert table data to json. Error: %+v", err)
 		}
 
-		json.Unmarshal([]byte(tableJSON), &dat)
+		err = json.Unmarshal([]byte(tableJSON), &dat)
+		if err != nil {
+			log.Printf("unable to unmarshall json to []map[string]interface. Error: %+v", err)
+		}
 		req := &core.PublishRequest{}
 		req.Token = token
 		req.Batch = true
