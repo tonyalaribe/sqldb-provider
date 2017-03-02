@@ -15,10 +15,57 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
 
+	"database/sql"
+
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
+
+const dataBaseConnectionString = "database-connection-string"
+const databaseType = "database-type"
+
+func serveCommandHandler(cmd *cobra.Command, args []string) {
+	dbType := viper.GetString(databaseType)
+	dbConnectionString := viper.GetString(dataBaseConnectionString)
+
+	db, err := sql.Open(dbType, dbConnectionString)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	defer db.Close()
+	// make sure connection is available
+	err = db.Ping()
+	if err != nil {
+		log.Fatalf("unable to ping database. Error: %+v", err.Error())
+	}
+
+	rows, err := db.Query("show TABLES")
+	if err != nil {
+		if err != nil {
+			log.Fatalf("unable to get tables from database. Error: %+v", err.Error())
+		}
+	}
+	var tables []string
+	var tablename string
+	for rows.Next() {
+		err = rows.Scan(&tablename)
+		if err != nil { /* error handling */
+		}
+		tables = append(tables, tablename)
+	}
+	log.Println(tables)
+	for _, table := range tables {
+
+		json, err := getJSON(db, "select count(*) from "+table)
+		if err != nil {
+			log.Println(err)
+		}
+		log.Println(json)
+	}
+}
 
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
@@ -26,10 +73,7 @@ var serveCmd = &cobra.Command{
 	Short: "Starts the process to run scheduled queries to publish to Middle",
 	Long: `This command starts a service that runs cron job scheduled queries
 	against configured databases and publishes the results to Middle.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Work your own magic here
-		fmt.Println("serve called")
-	},
+	Run: serveCommandHandler,
 }
 
 func init() {
