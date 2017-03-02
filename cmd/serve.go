@@ -15,21 +15,28 @@
 package cmd
 
 import (
+	"encoding/json"
 	"log"
+
+	client "gitlab.com/middlefront/go-middle-client"
+	"gitlab.com/middlefront/middle/core"
+	"gitlab.com/middlefront/middle/props"
 
 	"database/sql"
 
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 const dataBaseConnectionString = "database-connection-string"
 const databaseType = "database-type"
+const tokenString = "token"
 
 func serveCommandHandler(cmd *cobra.Command, args []string) {
 	dbType := viper.GetString(databaseType)
 	dbConnectionString := viper.GetString(dataBaseConnectionString)
+	token := viper.GetString(tokenString)
 
 	db, err := sql.Open(dbType, dbConnectionString)
 	if err != nil {
@@ -57,13 +64,35 @@ func serveCommandHandler(cmd *cobra.Command, args []string) {
 		tables = append(tables, tablename)
 	}
 	log.Println(tables)
+
+	// log.Printf("Data: %v", string(req))
+
+	//decalared outside the loop to prevent excessive heap allocations
+	cluster := viper.GetString(props.NatsClusterProp)
+	natsURL := viper.GetString(props.NatsURLProp)
+	var dat []map[string]interface{}
+	log.Println(cluster)
+	log.Println(natsURL)
 	for _, table := range tables {
 
-		json, err := getJSON(db, "select count(*) from "+table)
+		tableJSON, err := getJSON(db, "select * from "+table)
 		if err != nil {
-			log.Println(err)
+			log.Printf("unable to convert table data to json. Error: %+v", err)
 		}
-		log.Println(json)
+
+		json.Unmarshal([]byte(tableJSON), &dat)
+		req := &core.PublishRequest{}
+		req.Token = token
+		req.Batch = true
+		req.Data = dat
+
+		c := client.DefaultMiddleClient(cluster, natsURL, token)
+
+		err = c.Publish(*req)
+		if err != nil {
+			log.Printf("unable to publish json to middle.  Error: %+v", err)
+		}
+
 	}
 }
 
