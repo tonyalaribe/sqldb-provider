@@ -22,7 +22,7 @@ import (
 // serveCmd represents the serve command
 var syncCmd = &cobra.Command{
 	Use:   "sync",
-	Short: "Starts publish data from linked datastore to Middle. Just once.",
+	Short: "Publish data from linked datastore to Middle. Just once.",
 	Long: `This command runs queries
 	against configured databases and publishes the results to Middle.`,
 	Run: func(cmd *cobra.Command, args []string) {

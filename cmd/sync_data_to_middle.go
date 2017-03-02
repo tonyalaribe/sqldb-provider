@@ -14,7 +14,7 @@ import (
 func syncDataToMiddle() {
 	dbType := viper.GetString(databaseType)
 	dbConnectionString := viper.GetString(dataBaseConnectionString)
-	token := viper.GetString(tokenString)
+	token := viper.GetString(clientTokenString)
 
 	db, err := sql.Open(dbType, dbConnectionString)
 	if err != nil {
