@@ -15,57 +15,10 @@
 package cmd
 
 import (
-	"log"
-
-	"database/sql"
-
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
+	"github.com/robfig/cron"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
-
-const dataBaseConnectionString = "database-connection-string"
-const databaseType = "database-type"
-
-func serveCommandHandler(cmd *cobra.Command, args []string) {
-	dbType := viper.GetString(databaseType)
-	dbConnectionString := viper.GetString(dataBaseConnectionString)
-
-	db, err := sql.Open(dbType, dbConnectionString)
-	if err != nil {
-		log.Println(err.Error())
-	}
-	defer db.Close()
-	// make sure connection is available
-	err = db.Ping()
-	if err != nil {
-		log.Fatalf("unable to ping database. Error: %+v", err.Error())
-	}
-
-	rows, err := db.Query("show TABLES")
-	if err != nil {
-		if err != nil {
-			log.Fatalf("unable to get tables from database. Error: %+v", err.Error())
-		}
-	}
-	var tables []string
-	var tablename string
-	for rows.Next() {
-		err = rows.Scan(&tablename)
-		if err != nil { /* error handling */
-		}
-		tables = append(tables, tablename)
-	}
-	log.Println(tables)
-	for _, table := range tables {
-
-		json, err := getJSON(db, "select count(*) from "+table)
-		if err != nil {
-			log.Println(err)
-		}
-		log.Println(json)
-	}
-}
 
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
@@ -73,20 +26,20 @@ var serveCmd = &cobra.Command{
 	Short: "Starts the process to run scheduled queries to publish to Middle",
 	Long: `This command starts a service that runs cron job scheduled queries
 	against configured databases and publishes the results to Middle.`,
-	Run: serveCommandHandler,
+	Run: func(cmd *cobra.Command, args []string) {
+		c := cron.New()
+		//runs ever 2 minutes for debugging purposes. TODO: make the time configurable
+		c.AddFunc("0 02 * * * *", func() {
+			syncDataToMiddle()
+		})
+		c.Start()
+
+		//not sure if this is necessary.
+		defer c.Stop()
+
+	},
 }
 
 func init() {
 	RootCmd.AddCommand(serveCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// serveCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// serveCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 }
