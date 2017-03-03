@@ -27,6 +27,7 @@ var cfgFile string
 const dataBaseConnectionString = "database-connection-string"
 const databaseType = "database-type"
 const clientTokenString = "client-token"
+const databaseName = "database-name"
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
