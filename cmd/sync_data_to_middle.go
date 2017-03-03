@@ -5,16 +5,41 @@ import (
 	"encoding/json"
 	"log"
 
+	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
+
 	"github.com/spf13/viper"
 	client "gitlab.com/middlefront/go-middle-client"
 	"gitlab.com/middlefront/middle/core"
 	"gitlab.com/middlefront/middle/props"
 )
 
-func syncDataToMiddle() {
+//getTables returns all tables in a given database, and an error, if unsuccessful
+func getTables(db *sql.DB) ([]string, error) {
+	var tables []string
+	rows, err := db.Query("show TABLES")
+	if err != nil {
+		if err != nil {
+			log.Fatalf("unable to get tables from database. Error: %+v", err.Error())
+			return tables, err
+		}
+	}
+
+	var tablename string
+	for rows.Next() {
+		err = rows.Scan(&tablename)
+		if err != nil { /* error handling. Not sure what kind of errors would return nil when rows.Next() had returned true. TODO: handle error appropriately */
+			log.Fatalf("unable to get tables from database. Error: %+v", err.Error())
+		}
+		tables = append(tables, tablename)
+	}
+
+	return tables, err
+}
+
+func syncDataToMiddle() error {
 	dbType := viper.GetString(databaseType)
 	dbConnectionString := viper.GetString(dataBaseConnectionString)
-	token := viper.GetString(clientTokenString)
+	clientToken := viper.GetString(clientTokenString)
 
 	db, err := sql.Open(dbType, dbConnectionString)
 	if err != nil {
@@ -24,26 +49,15 @@ func syncDataToMiddle() {
 	// make sure connection is available
 	err = db.Ping()
 	if err != nil {
-		log.Fatalf("unable to ping database. Error: %+v", err.Error())
+		log.Printf("unable to ping database. Error: %+v", err.Error())
+		return err
 	}
 
-	rows, err := db.Query("show TABLES")
+	tables, err := getTables(db)
 	if err != nil {
-		if err != nil {
-			log.Fatalf("unable to get tables from database. Error: %+v", err.Error())
-		}
+		log.Printf("unable to get dataBases. Error: %+v", err.Error())
+		return err
 	}
-	var tables []string
-	var tablename string
-	for rows.Next() {
-		err = rows.Scan(&tablename)
-		if err != nil { /* error handling */
-		}
-		tables = append(tables, tablename)
-	}
-	log.Println(tables)
-
-	// log.Printf("Data: %v", string(req))
 
 	//decalared outside the loop to prevent excessive heap allocations
 	cluster := viper.GetString(props.NatsClusterProp)
@@ -62,11 +76,12 @@ func syncDataToMiddle() {
 			log.Printf("unable to unmarshall json to []map[string]interface. Error: %+v", err)
 		}
 		req := &core.PublishRequest{}
-		req.Token = token
-		req.Batch = true
+		req.Token = clientToken
+		req.Type = table + ".upsert"
+		req.TypeVersion = "1.0" //TODO:Increment Type version with each sync
 		req.Data = dat
 
-		c := client.DefaultMiddleClient(cluster, natsURL, token)
+		c := client.DefaultMiddleClient(cluster, natsURL, clientToken)
 
 		err = c.Publish(*req)
 		if err != nil {
@@ -74,4 +89,5 @@ func syncDataToMiddle() {
 		}
 
 	}
+	return nil
 }

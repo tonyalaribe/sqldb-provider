@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
 	"github.com/spf13/cobra"
 )
 
