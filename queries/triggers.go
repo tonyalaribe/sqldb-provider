@@ -10,7 +10,7 @@ import (
 )
 
 //CreateInsertTrigger for any given tablename, to store any newly added value to the table, and a form of primary key to access the data if need be.
-func CreateInsertTrigger(db *sql.DB, tablename, primaryKeysAndValues, NewColumnValues string) error {
+func CreateInsertTrigger(db *sql.DB, tablename, TriggerChangelogTable, primaryKeysAndValues, NewColumnValues string) error {
 	query := fmt.Sprintf(`
     DROP TRIGGER %s_insert_trigger;`, tablename)
 
@@ -19,12 +19,12 @@ func CreateInsertTrigger(db *sql.DB, tablename, primaryKeysAndValues, NewColumnV
 		log.Println(err)
 	}
 	query = fmt.Sprintf(`
-    CREATE TRIGGER %s_insert_trigger
-      AFTER DELETE ON %s
+    CREATE TRIGGER %[1]s_insert_trigger
+      AFTER INSERT ON %[1]s
       FOR EACH ROW
-        INSERT INTO meta_changelog (TableName, PrimaryKeys, NewColumnValue,  TriggerType )
-        VALUES ('%s',CONCAT(%s),CONCAT(%s),'D');
-    `, tablename, tablename, tablename, primaryKeysAndValues, NewColumnValues)
+        INSERT INTO %[2]s (TableName, PrimaryKeys, NewColumnValue,  TriggerType )
+        VALUES ('%[1]s',CONCAT(%[3]s),CONCAT(%[4]s),'I');
+    `, tablename, TriggerChangelogTable, primaryKeysAndValues, NewColumnValues)
 
 	_, err = db.Query(query)
 	if err != nil {
@@ -35,7 +35,7 @@ func CreateInsertTrigger(db *sql.DB, tablename, primaryKeysAndValues, NewColumnV
 }
 
 //CreateUpdateTrigger for any given tablename, to store its previous values in the db, and a form of primary key to access the data if need be, and also the updated data to another column.
-func CreateUpdateTrigger(db *sql.DB, tablename, primaryKeysAndValues, OldColumnValues, NewColumnValues string) error {
+func CreateUpdateTrigger(db *sql.DB, tablename, TriggerChangelogTable, primaryKeysAndValues, OldColumnValues, NewColumnValues string) error {
 	query := fmt.Sprintf(`
 			DROP TRIGGER %s_update_trigger;`, tablename)
 
@@ -44,12 +44,12 @@ func CreateUpdateTrigger(db *sql.DB, tablename, primaryKeysAndValues, OldColumnV
 		log.Println(err)
 	}
 	query = fmt.Sprintf(`
-			CREATE TRIGGER %s_update_trigger
-		    AFTER UPDATE ON %s
+			CREATE TRIGGER %[1]s_update_trigger
+		    AFTER UPDATE ON %[1]s
 		    FOR EACH ROW
-		      INSERT INTO meta_changelog (TableName, PrimaryKeys, OldColumnValue, NewColumnValue, TriggerType )
-			    VALUES ('%s',CONCAT(%s),CONCAT(%s),CONCAT(%s), 'U');
-      `, tablename, tablename, tablename, primaryKeysAndValues, OldColumnValues, NewColumnValues)
+		      INSERT INTO %[2]s (TableName, PrimaryKeys, OldColumnValue, NewColumnValue, TriggerType )
+			    VALUES ('%[1]s',CONCAT(%[3]s),CONCAT(%[4]s),CONCAT(%[5]s), 'U');
+      `, tablename, TriggerChangelogTable, primaryKeysAndValues, OldColumnValues, NewColumnValues)
 
 	_, err = db.Query(query)
 	if err != nil {
@@ -60,7 +60,7 @@ func CreateUpdateTrigger(db *sql.DB, tablename, primaryKeysAndValues, OldColumnV
 }
 
 //CreateDeleteTrigger for any given tablename, to store its previous values in the db, and a form of primary key to access the data if need be.
-func CreateDeleteTrigger(db *sql.DB, tablename, primaryKeysAndValues, OldColumnValues string) error {
+func CreateDeleteTrigger(db *sql.DB, tablename, TriggerChangelogTable, primaryKeysAndValues, OldColumnValues string) error {
 	query := fmt.Sprintf(`
     DROP TRIGGER %s_delete_trigger;`, tablename)
 
@@ -69,12 +69,12 @@ func CreateDeleteTrigger(db *sql.DB, tablename, primaryKeysAndValues, OldColumnV
 		log.Println(err)
 	}
 	query = fmt.Sprintf(`
-    CREATE TRIGGER %s_delete_trigger
-      AFTER DELETE ON %s
+    CREATE TRIGGER %[1]s_delete_trigger
+      AFTER DELETE ON %[1]s
       FOR EACH ROW
-        INSERT INTO meta_changelog (TableName, PrimaryKeys, OldColumnValue,  TriggerType )
-        VALUES ('%s',CONCAT(%s),CONCAT(%s),'D');
-    `, tablename, tablename, tablename, primaryKeysAndValues, OldColumnValues)
+        INSERT INTO %[2]s (TableName, PrimaryKeys, OldColumnValue,  TriggerType )
+        VALUES ('%[1]s',CONCAT(%[3]s),CONCAT(%[4]s),'D');
+    `, tablename, TriggerChangelogTable, primaryKeysAndValues, OldColumnValues)
 
 	_, err = db.Query(query)
 	if err != nil {

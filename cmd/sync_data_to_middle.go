@@ -17,7 +17,7 @@ import (
 
 func createTriggers(db *sql.DB) {
 	dbName := viper.GetString(databaseName)
-
+	const TriggerChangelogTable = "meta_changelog"
 	tablesAndColumns, err := queries.GetAllTablesAndColumns(db, dbName)
 	if err != nil {
 		log.Println(err)
@@ -31,17 +31,23 @@ func createTriggers(db *sql.DB) {
 
 	//loop through all tables to set triggers for each of them.
 	for tablename, columns := range tablesAndColumns {
+		if tablename == TriggerChangelogTable {
+			continue
+		}
 
-		var primaryKeysAndValues string
+		var OldPrimaryKeysAndValues, NewPrimaryKeysAndValues string
+
 		primaryKeysList, err := queries.GetAllPrimaryKeysInTable(db, tablename)
 		if err != nil {
 			log.Println(err)
 		}
 
 		for _, pks := range primaryKeysList {
-			primaryKeysAndValues += "'" + pks + ":',OLD." + pks + ",',',"
+			OldPrimaryKeysAndValues += "'" + pks + ":',OLD." + pks + ",',',"
+			NewPrimaryKeysAndValues += "'" + pks + ":',NEW." + pks + ",',',"
 		}
-		primaryKeysAndValues += "''"
+		OldPrimaryKeysAndValues += "''"
+		NewPrimaryKeysAndValues += "''"
 
 		var OldColumnValues string
 		var NewColumnValues string
@@ -50,18 +56,20 @@ func createTriggers(db *sql.DB) {
 			OldColumnValues += "'" + columnName + ":',OLD." + columnName + ",',',"
 			NewColumnValues += "'" + columnName + ":',NEW." + columnName + ",',',"
 		}
+
 		OldColumnValues += "''"
 		NewColumnValues += "''"
 
-		err = queries.CreateInsertTrigger(db, tablename, primaryKeysAndValues, NewColumnValues)
+		err = queries.CreateInsertTrigger(db, tablename, TriggerChangelogTable, NewPrimaryKeysAndValues, NewColumnValues)
 		if err != nil {
 			log.Println(err)
 		}
-		err = queries.CreateUpdateTrigger(db, tablename, primaryKeysAndValues, OldColumnValues, NewColumnValues)
+
+		err = queries.CreateUpdateTrigger(db, tablename, TriggerChangelogTable, NewPrimaryKeysAndValues, OldColumnValues, NewColumnValues)
 		if err != nil {
 			log.Println(err)
 		}
-		err = queries.CreateDeleteTrigger(db, tablename, primaryKeysAndValues, OldColumnValues)
+		err = queries.CreateDeleteTrigger(db, tablename, TriggerChangelogTable, OldPrimaryKeysAndValues, OldColumnValues)
 		if err != nil {
 			log.Println(err)
 		}
