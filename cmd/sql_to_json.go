@@ -35,7 +35,7 @@ func getJSON(db *sql.DB, sqlString string) (string, error) {
 	}
 
 	for rows.Next() {
-		err := rows.Scan(scanArgs...)
+		err = rows.Scan(scanArgs...)
 		if err != nil {
 			return "", err
 		}

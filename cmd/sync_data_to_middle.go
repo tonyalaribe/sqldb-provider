@@ -3,6 +3,7 @@ package cmd
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
@@ -36,6 +37,7 @@ func getTables(db *sql.DB) ([]string, error) {
 
 func createTriggers(db *sql.DB) {
 	dbName := viper.GetString(databaseName)
+	var query string
 
 	rows, err := db.Query("SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_DEFAULT, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" + dbName + "';")
 	if err != nil {
@@ -62,65 +64,136 @@ func createTriggers(db *sql.DB) {
 			/* error handling. Not sure what kind of errors would return nil when rows.Next() had returned true. TODO: handle error appropriately */
 			log.Printf("unable to get tables from database. Error: %+v", err.Error())
 		}
-		log.Println(data)
 	}
+
 	log.Println(tablesAndColumns)
-	//
-	//
-	// 	db.Query("SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_DEFAULT, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" + dbName + "';")
-	//
-	// 	select CCU.CONSTRAINT_NAME, CCU.COLUMN_NAME
-	// 	from INFORMATION_SCHEMA.TABLE_CONSTRAINTS as TC
-	// 	inner join INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE as CCU
-	// 	    on TC.CONSTRAINT_CATALOG = CCU.CONSTRAINT_CATALOG
-	// 	    and TC.CONSTRAINT_SCHEMA = CCU.CONSTRAINT_SCHEMA
-	// 	    and TC.CONSTRAINT_NAME = CCU.CONSTRAINT_NAME
-	// 	where TC.CONSTRAINT_CATALOG = 'MyCatalogName'
-	// 	and TC.CONSTRAINT_SCHEMA = 'MySchemaName'
-	// 	and TC.TABLE_NAME = 'city'
-	// 	and TC.CONSTRAINT_TYPE = 'PRIMARY KEY'
-	//
-	//
-	// 	SELECT KU.table_name as TABLENAME,column_name as PRIMARYKEYCOLUMN
-	// 	FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS TC
-	// 	INNER JOIN
-	// 	    INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KU
-	// 	          ON TC.CONSTRAINT_TYPE = 'PRIMARY KEY' AND
-	// 	             TC.CONSTRAINT_NAME = KU.CONSTRAINT_NAME AND
-	// 	             KU.table_name='city'
+
+	// SELECT KU.table_name as TABLENAME,
+	// column_name as PRIMARYKEYCOLUMN
+	// FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS TC
+	// INNER JOIN
+	// 	INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KU
+	// 	ON TC.CONSTRAINT_TYPE = 'PRIMARY KEY' AND
+	// 	TC.CONSTRAINT_NAME = KU.CONSTRAINT_NAME AND
+	// 	KU.table_name='%s'
 	// 	ORDER BY KU.ORDINAL_POSITION;
-	//
-	// 	SELECT KU.table_name as TABLENAME,column_name as PRIMARYKEYCOLUMN
-	// 	FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS TC
-	// 	INNER JOIN
-	// 			INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KU
-	// 						ON TC.CONSTRAINT_TYPE = 'UNIQUE' AND
-	// 							 TC.CONSTRAINT_NAME = KU.CONSTRAINT_NAME AND
-	// 							 KU.table_name='city'
-	// 	ORDER BY KU.ORDINAL_POSITION;
-	//
-	// 	KU.TABLE_NAME,
-	// 	select *
-	// 	from INFORMATION_SCHEMA.TABLE_CONSTRAINTS as TC
-	// 	where TC.CONSTRAINT_SCHEMA = 'world'
-	// 	and TC.TABLE_NAME = 'city'
-	// 	and TC.CONSTRAINT_TYPE = 'PRIMARY KEY'
-	//
-	// 	SELECT     CCU.CONSTRAINT_NAME, CCU.COLUMN_NAME
-	// 	FROM         INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS TC INNER JOIN
-	// 	                      INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE AS CCU ON TC.CONSTRAINT_CATALOG = CCU.CONSTRAINT_CATALOG AND
-	// 	                      TC.CONSTRAINT_SCHEMA = CCU.CONSTRAINT_SCHEMA AND TC.CONSTRAINT_NAME = CCU.CONSTRAINT_NAME
-	// 	WHERE     (TC.TABLE_NAME = 'city')
-	//
-	// CREATE TRIGGER insert_data AFTER INSERT ON
-	// 	CREATE TRIGGER ins_sum BEFORE INSERT ON account
-	//     -> FOR EACH ROW SET @sum = @sum + NEW.amount;
-	//
-	// 		CREATE TRIGGER ins_transaction BEFORE INSERT ON account
-	//     -> FOR EACH ROW PRECEDES ins_sum
-	//     -> SET
-	//     -> @deposits = @deposits + IF(NEW.amount>0,NEW.amount,0),
-	//     -> @withdrawals = @withdrawals + IF(NEW.amount<0,-NEW.amount,0);
+
+	tablesAndPrimaryKeys := make(map[string][]string)
+
+	for tablename := range tablesAndColumns {
+		query = fmt.Sprintf(`
+			SELECT column_name as PRIMARYKEYCOLUMN
+			FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS TC
+			INNER JOIN
+				INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KU
+				ON TC.CONSTRAINT_TYPE = 'PRIMARY KEY' AND
+				TC.CONSTRAINT_NAME = KU.CONSTRAINT_NAME AND
+				KU.table_name='%s'
+				ORDER BY KU.ORDINAL_POSITION;
+			`, tablename)
+		rows, err = db.Query(query)
+		if err != nil {
+			log.Fatalf("unable to get colums in tables. Error: %+v", err.Error())
+		}
+		var primarykeycolumn string
+		primaryKeysMap := make(map[string]interface{})
+		for rows.Next() {
+			err = rows.Scan(&primarykeycolumn)
+			if err != nil {
+				log.Println(err)
+			}
+			primaryKeysMap[primarykeycolumn] = nil
+		}
+
+		var primaryKeysList []string
+		for primaryKey := range primaryKeysMap {
+			primaryKeysList = append(primaryKeysList, primaryKey)
+		}
+
+		tablesAndPrimaryKeys[tablename] = primaryKeysList
+
+	}
+
+	log.Println(tablesAndPrimaryKeys)
+
+	// TODO: Create a table to store all changes, old and new, alongside the
+	// ID | KEYS (x:xval,y:yval) | TABLE_NAME | TRIGGER_TYPE
+
+	query = fmt.Sprintf(`CREATE TABLE meta_changelog(
+	   ID int NOT NULL AUTO_INCREMENT,
+		 TableName varchar(255),
+		 PrimaryKeys varchar(255),
+		 OldColumnValue varchar(255),
+		 NewColumnValue varchar(255),
+		 TriggerType varchar(10),
+		 ActionDate datetime NOT NULL DEFAULT NOW(),
+	   PRIMARY KEY(ID)
+	);`)
+	_, err = db.Query(query)
+	if err != nil {
+		log.Println(err)
+	}
+
+	for tablename, columns := range tablesAndColumns {
+		var pkSQLString string
+		log.Println(tablesAndPrimaryKeys[tablename])
+		for _, pks := range tablesAndPrimaryKeys[tablename] {
+			pkSQLString += "'" + pks + ":',OLD." + pks + ",',',"
+		}
+		pkSQLString += "''"
+
+		var OldColumnValues string
+		var NewColumnValues string
+
+		for _, columnName := range columns {
+			OldColumnValues += "'" + columnName + ":',OLD." + columnName + ",',',"
+			NewColumnValues += "'" + columnName + ":',NEW." + columnName + ",',',"
+		}
+		OldColumnValues += "''"
+		NewColumnValues += "''"
+
+		query = fmt.Sprintf(`
+			DROP TRIGGER %s_delete_trigger;`, tablename)
+		log.Println(query)
+		_, err = db.Query(query)
+		if err != nil {
+			log.Println(err)
+		}
+		query = fmt.Sprintf(`
+			DROP TRIGGER %s_delete_trigger;
+			CREATE TRIGGER %s_delete_trigger
+		AFTER DELETE ON %s
+		FOR EACH ROW
+  	INSERT INTO meta_changelog (TableName, PrimaryKeys, OldColumnValue,  TriggerType )
+      VALUES ('%s',CONCAT(%s),CONCAT(%s),'D');`, tablename, tablename, tablename, tablename, pkSQLString, OldColumnValues)
+
+		log.Println(query)
+		_, err = db.Query(query)
+		if err != nil {
+			log.Println(err)
+		}
+
+		query = fmt.Sprintf(`
+			DROP TRIGGER %s_delete_trigger;`, tablename)
+		log.Println(query)
+		_, err = db.Query(query)
+		if err != nil {
+			log.Println(err)
+		}
+		query = fmt.Sprintf(`
+			DROP TRIGGER %s_update_trigger;
+			CREATE TRIGGER %s_update_trigger
+		AFTER UPDATE ON %s
+		FOR EACH ROW
+		INSERT INTO meta_changelog (TableName, PrimaryKeys, OldColumnValue, NewColumnValue, TriggerType )
+			VALUES ('%s',CONCAT(%s),CONCAT(%s),CONCAT(%s), 'U');`, tablename, tablename, tablename, tablename, pkSQLString, OldColumnValues, NewColumnValues)
+		log.Println(query)
+		_, err = db.Query(query)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
 }
 
 func createTriggersHandler() error {
