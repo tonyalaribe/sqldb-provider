@@ -56,7 +56,7 @@ func GetAllTablesAndColumns(db *sql.DB, dbName string) (map[string][]string, err
 		if err != nil {
 			/* error handling. Not sure what kind of errors would return nil when rows.Next() had returned true. TODO: handle error appropriately */
 			log.Printf("unable to get tables from database. Error: %+v", err.Error())
-			return tablesAndColumns, err
+			//return tablesAndColumns, err
 		}
 	}
 
@@ -114,7 +114,6 @@ func CreateMetaChangeLogTable(db *sql.DB) error {
 		 PRIMARY KEY(ID)
 	);`)
 
-	log.Println(query)
 	_, err := db.Query(query)
 	if err != nil {
 		log.Println(err)

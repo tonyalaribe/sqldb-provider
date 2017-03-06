@@ -23,15 +23,6 @@ func createTriggers(db *sql.DB) {
 		log.Println(err)
 	}
 
-	//tablesAndPrimaryKeys := make(map[string][]string)
-
-	// for tablename := range tablesAndColumns {
-	// 	primaryKeysList := GetAllPrimaryKeysInTable(db, tablename)
-	// 	tablesAndPrimaryKeys[tablename] = primaryKeysList
-	// }
-
-	//log.Println(tablesAndPrimaryKeys)
-
 	//Create the changelog table where changes will be logged
 	err = queries.CreateMetaChangeLogTable(db)
 	if err != nil {
@@ -40,8 +31,8 @@ func createTriggers(db *sql.DB) {
 
 	//loop through all tables to set triggers for each of them.
 	for tablename, columns := range tablesAndColumns {
-		var primaryKeysAndValues string
 
+		var primaryKeysAndValues string
 		primaryKeysList, err := queries.GetAllPrimaryKeysInTable(db, tablename)
 		if err != nil {
 			log.Println(err)
@@ -62,15 +53,19 @@ func createTriggers(db *sql.DB) {
 		OldColumnValues += "''"
 		NewColumnValues += "''"
 
+		err = queries.CreateInsertTrigger(db, tablename, primaryKeysAndValues, NewColumnValues)
+		if err != nil {
+			log.Println(err)
+		}
+		err = queries.CreateUpdateTrigger(db, tablename, primaryKeysAndValues, OldColumnValues, NewColumnValues)
+		if err != nil {
+			log.Println(err)
+		}
 		err = queries.CreateDeleteTrigger(db, tablename, primaryKeysAndValues, OldColumnValues)
 		if err != nil {
 			log.Println(err)
 		}
 
-		err = queries.CreateUpdateTrigger(db, tablename, primaryKeysAndValues, OldColumnValues, NewColumnValues)
-		if err != nil {
-			log.Println(err)
-		}
 	}
 }
 
