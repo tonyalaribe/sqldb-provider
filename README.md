@@ -34,6 +34,7 @@ to a Middle server.
 `
 - Initialize sql-provider.
   - Creates triggers to log changes to other tables in the database, and creates a table 'meta_changelog', to store the triggered updates to the tables.
+  - Stores performs a one off sync and updates the time of sync, for subsequent syncs.
 - Perform a one off sync
 `
   sqldb-provider sync
