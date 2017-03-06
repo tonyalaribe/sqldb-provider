@@ -33,7 +33,7 @@ to a Middle server.
   sqldb-provider -h
 `
 - Initialize sql-provider.
-  - Creates triggers to log changes to other tables in the database, and creates a table 'meta_changelog', to store the triggered updates to the tables. 
+  - Creates triggers to log changes to other tables in the database, and creates a table 'meta_changelog', to store the triggered updates to the tables.
 - Perform a one off sync
 `
   sqldb-provider sync
