@@ -3,6 +3,8 @@ package cmd
 import (
 	"database/sql"
 	"encoding/json"
+
+	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
 )
 
 func getJSON(db *sql.DB, sqlString string) (string, error) {
@@ -33,7 +35,7 @@ func getJSON(db *sql.DB, sqlString string) (string, error) {
 	}
 
 	for rows.Next() {
-		err := rows.Scan(scanArgs...)
+		err = rows.Scan(scanArgs...)
 		if err != nil {
 			return "", err
 		}

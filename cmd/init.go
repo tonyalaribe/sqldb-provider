@@ -15,20 +15,20 @@
 package cmd
 
 import (
+	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
 	"github.com/spf13/cobra"
 )
 
-// serveCmd represents the serve command
-var syncCmd = &cobra.Command{
-	Use:   "sync",
-	Short: "Publish data from linked datastore to Middle. Just once.",
-	Long: `This command runs queries
-	against configured databases and publishes the results to Middle.`,
+// initCmd should initialize the provider by creating triggers, performing a first sync, and storing date of initial sync for so subsequent syncs can only publish data since the last sync
+var initCmd = &cobra.Command{
+	Use:   "init",
+	Short: "Initialize Provider and Create Defaults",
+	Long:  `This commandhould initialize the provider by creating triggers, performing a first sync, and storing date of initial sync for so subsequent syncs can only publish data since the last sync`,
 	Run: func(cmd *cobra.Command, args []string) {
-		syncDataToMiddle()
+		createTriggersHandler()
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(syncCmd)
+	RootCmd.AddCommand(initCmd)
 }
