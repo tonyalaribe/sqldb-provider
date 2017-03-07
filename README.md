@@ -11,7 +11,6 @@ to a Middle server.
   cd /path/to/repo
 `
 -  Create a config file (.sqldb-provider.yaml) in the repo root. eg:
-
 `
   database-connection-string: root@tcp(127.0.0.1:3306)/world # Connection string to access the database
   database-type: mysql # database type. Useful in selecting appropriate sql driver
@@ -33,6 +32,9 @@ to a Middle server.
   sqldb-provider -h
 `
 - Initialize sql-provider.
+`
+  sqldb-provider init
+`
   - Creates triggers to log changes to other tables in the database, and creates a table 'meta_changelog', to store the triggered updates to the tables.
   - Stores performs a one off sync and updates the time of sync, for subsequent syncs.
 - Perform a one off sync
