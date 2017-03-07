@@ -1,33 +1,29 @@
-// Copyright © 2017 NAME HERE <EMAIL ADDRESS>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
+
+	"gitlab.com/middlefront/sqldb-provider/mysqlprovider"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
+type SQLProvider interface {
+	Initialize()
+	GetUpdatesForSync()
+}
 
-const dataBaseConnectionString = "database-connection-string"
-const databaseType = "database-type"
-const clientTokenString = "client-token"
-const databaseName = "database-name"
+var (
+	cfgFile            string
+	dbConnectionString string
+	dbType             string
+	clientTokenString  string
+	dbName             string
+	dbprovider         SQLProvider
+)
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -73,4 +69,21 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
+
+	//This initialization is placed here, because initConfig is a callback that is called after cobra has parsed the config file and other variables. The other ideal location would have been the init function, but the init function is called before the config has been parsed, and hence the absense of the needed variables.
+
+	dbConnectionString = viper.GetString("database-connection-string")
+	dbType = viper.GetString("database-type")
+	clientTokenString = viper.GetString("client-token")
+	dbName = viper.GetString("database-name")
+
+	log.Println(dbType)
+	log.Println(dbConnectionString)
+	log.Println(dbName)
+
+	mysqldb, err := mysqlprovider.New(dbType, dbConnectionString, dbName)
+	if err != nil {
+		log.Println(err)
+	}
+	dbprovider = SQLProvider(mysqldb)
 }

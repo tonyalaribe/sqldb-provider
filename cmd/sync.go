@@ -25,7 +25,7 @@ var syncCmd = &cobra.Command{
 	Long: `This command runs queries
 	against configured databases and publishes the results to Middle.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		syncDataToMiddle()
+		//syncDataToMiddle()
 	},
 }
 
