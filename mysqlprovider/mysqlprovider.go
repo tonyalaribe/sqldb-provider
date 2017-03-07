@@ -45,8 +45,25 @@ func (mp *MySQLProvider) Initialize() {
 	if err != nil {
 		log.Println(err)
 	}
+
 }
 
 func (mp *MySQLProvider) GetUpdatesForSync() {
 	log.Println(mp)
+	var err error
+
+	lastSync, err := getLastSync(mp.db, "meta_data")
+	if err != nil {
+		log.Println(err)
+	}
+
+	//if lastSync
+	// tables, err := queries.GetAllTables(db)
+	// if err != nil {
+	// 	log.Printf("unable to get dataBases. Error: %+v", err.Error())
+	// 	return err
+	// }
+
+	log.Println(lastSync)
+
 }

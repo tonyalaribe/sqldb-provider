@@ -151,20 +151,20 @@ func setLastSyncToNow(db *sql.DB, metaDataTable string) error {
 	return nil
 }
 
-func getLastSync(db *sql.DB, metaDataTable string) error {
+func getLastSync(db *sql.DB, metaDataTable string) (string, error) {
 	query := fmt.Sprintf(`SELECT DataValue FROM %s
 			 WHERE DataKey='last_sync'
-		);`, metaDataTable)
+		;`, metaDataTable)
 
 	row := db.QueryRow(query)
 
 	var err error
-	var lastSync string
+	lastSync := ""
 	err = row.Scan(&lastSync)
 	if err != nil {
 		log.Println(err)
 		//return err
 	}
 	log.Println(lastSync)
-	return nil
+	return lastSync, nil
 }
