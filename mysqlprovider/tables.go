@@ -1,5 +1,5 @@
-//Package queries package exports database access queries, to help decrease clutter in the packages using these queries.
-package queries
+//Package mysqlprovider package exports database access queries, to help decrease clutter in the packages using these queries.
+package mysqlprovider
 
 import (
 	"database/sql"
@@ -9,8 +9,8 @@ import (
 	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
 )
 
-//GetAllTables returns all tables in a given database, and an error, if unsuccessful
-func GetAllTables(db *sql.DB) ([]string, error) {
+//getAllTables returns all tables in a given database, and an error, if unsuccessful
+func getAllTables(db *sql.DB) ([]string, error) {
 	var tables []string
 	rows, err := db.Query("show TABLES")
 	if err != nil {
@@ -30,8 +30,8 @@ func GetAllTables(db *sql.DB) ([]string, error) {
 	return tables, err
 }
 
-//GetAllTablesAndColumns returns a map of tables to a list of curresponding columns
-func GetAllTablesAndColumns(db *sql.DB, dbName string) (map[string][]string, error) {
+//getAllTablesAndColumns returns a map of tables to a list of curresponding columns
+func getAllTablesAndColumns(db *sql.DB, dbName string) (map[string][]string, error) {
 	rows, err := db.Query("SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_DEFAULT, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" + dbName + "';")
 	if err != nil {
 		log.Fatalf("unable to get colums in tables. Error: %+v", err.Error())
@@ -63,8 +63,8 @@ func GetAllTablesAndColumns(db *sql.DB, dbName string) (map[string][]string, err
 	return tablesAndColumns, nil
 }
 
-//GetAllPrimaryKeysInTable returns a map of tables to a list of curresponding primary keys
-func GetAllPrimaryKeysInTable(db *sql.DB, tablename string) ([]string, error) {
+//getAllPrimaryKeysInTable returns a map of tables to a list of curresponding primary keys
+func getAllPrimaryKeysInTable(db *sql.DB, tablename string) ([]string, error) {
 
 	query := fmt.Sprintf(`
 			SELECT column_name as PRIMARYKEYCOLUMN
@@ -99,20 +99,20 @@ func GetAllPrimaryKeysInTable(db *sql.DB, tablename string) ([]string, error) {
 	return primaryKeysList, nil
 }
 
-// CreateMetaChangeLogTable : Creates a table to store all changes, old and new, alongside the
+// createMetaChangeLogTable : Creates a table to store all changes, old and new, alongside the
 // ID (Primary Key) | TableName | PrimaryKeys (x:xval,y:yval) | OldColumnValues (x:xval,y:yval) | NewColumnValue(x:xval,y:yval)  | TriggerType ( I|U|D ) | ActionDate
-func CreateMetaChangeLogTable(db *sql.DB) error {
+func createMetaChangeLogTable(db *sql.DB, metaTableName string) error {
 
-	query := fmt.Sprintf(`CREATE TABLE meta_changelog(
+	query := fmt.Sprintf(`CREATE TABLE %s(
 		 ID int NOT NULL AUTO_INCREMENT,
 		 TableName varchar(255),
 		 PrimaryKeys varchar(255),
-		 OldColumnValue varchar(255),
-		 NewColumnValue varchar(255),
+		 OldColumnValue LONGTEXT,
+		 NewColumnValue LONGTEXT,
 		 TriggerType varchar(10),
 		 ActionDate datetime NOT NULL DEFAULT NOW(),
 		 PRIMARY KEY(ID)
-	);`)
+	);`, metaTableName)
 
 	_, err := db.Query(query)
 	if err != nil {
@@ -120,4 +120,51 @@ func CreateMetaChangeLogTable(db *sql.DB) error {
 		return err
 	}
 	return nil
+}
+
+func createMetaDataTable(db *sql.DB, metaDataTable string) error {
+	query := fmt.Sprintf(`CREATE TABLE %s(
+			 DataKey varchar(30) NOT NULL,
+			 DataValue varchar(255),
+			 PRIMARY KEY(ID)
+		);`, metaDataTable)
+
+	_, err := db.Query(query)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	return nil
+}
+
+func setLastSyncToNow(db *sql.DB, metaDataTable string) error {
+	query := fmt.Sprintf(`UPDATE %s SET
+			 DataValue = NOW()
+			 WHERE DataKey='last_sync'
+		);`, metaDataTable)
+
+	_, err := db.Query(query)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	return nil
+}
+
+func getLastSync(db *sql.DB, metaDataTable string) (string, error) {
+	query := fmt.Sprintf(`SELECT DataValue FROM %s
+			 WHERE DataKey='last_sync'
+		;`, metaDataTable)
+
+	row := db.QueryRow(query)
+
+	var err error
+	lastSync := ""
+	err = row.Scan(&lastSync)
+	if err != nil {
+		log.Println(err)
+		//return err
+	}
+	log.Println(lastSync)
+	return lastSync, nil
 }
