@@ -32,7 +32,19 @@ func New(dbType, dbConnectionString, dbName string) (*MySQLProvider, error) {
 }
 
 func (mp *MySQLProvider) Initialize() {
-	createTriggers(mp.db, mp.dbName, "meta_changelog")
+	var err error
+	err = createMetaChangeLogTable(mp.db, "meta_changelog")
+	if err != nil {
+		log.Println(err)
+	}
+	err = createMetaDataTable(mp.db, "meta_data")
+	if err != nil {
+		log.Println(err)
+	}
+	err = createTriggers(mp.db, mp.dbName, "meta_changelog")
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func (mp *MySQLProvider) GetUpdatesForSync() {

@@ -101,23 +101,70 @@ func getAllPrimaryKeysInTable(db *sql.DB, tablename string) ([]string, error) {
 
 // createMetaChangeLogTable : Creates a table to store all changes, old and new, alongside the
 // ID (Primary Key) | TableName | PrimaryKeys (x:xval,y:yval) | OldColumnValues (x:xval,y:yval) | NewColumnValue(x:xval,y:yval)  | TriggerType ( I|U|D ) | ActionDate
-func createMetaChangeLogTable(db *sql.DB) error {
+func createMetaChangeLogTable(db *sql.DB, metaTableName string) error {
 
-	query := fmt.Sprintf(`CREATE TABLE meta_changelog(
+	query := fmt.Sprintf(`CREATE TABLE %s(
 		 ID int NOT NULL AUTO_INCREMENT,
 		 TableName varchar(255),
 		 PrimaryKeys varchar(255),
-		 OldColumnValue varchar(255),
-		 NewColumnValue varchar(255),
+		 OldColumnValue LONGTEXT,
+		 NewColumnValue LONGTEXT,
 		 TriggerType varchar(10),
 		 ActionDate datetime NOT NULL DEFAULT NOW(),
 		 PRIMARY KEY(ID)
-	);`)
+	);`, metaTableName)
 
 	_, err := db.Query(query)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
+	return nil
+}
+
+func createMetaDataTable(db *sql.DB, metaDataTable string) error {
+	query := fmt.Sprintf(`CREATE TABLE %s(
+			 DataKey varchar(30) NOT NULL,
+			 DataValue varchar(255),
+			 PRIMARY KEY(ID)
+		);`, metaDataTable)
+
+	_, err := db.Query(query)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	return nil
+}
+
+func setLastSyncToNow(db *sql.DB, metaDataTable string) error {
+	query := fmt.Sprintf(`UPDATE %s SET
+			 DataValue = NOW()
+			 WHERE DataKey='last_sync'
+		);`, metaDataTable)
+
+	_, err := db.Query(query)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	return nil
+}
+
+func getLastSync(db *sql.DB, metaDataTable string) error {
+	query := fmt.Sprintf(`SELECT DataValue FROM %s
+			 WHERE DataKey='last_sync'
+		);`, metaDataTable)
+
+	row := db.QueryRow(query)
+
+	var err error
+	var lastSync string
+	err = row.Scan(&lastSync)
+	if err != nil {
+		log.Println(err)
+		//return err
+	}
+	log.Println(lastSync)
 	return nil
 }

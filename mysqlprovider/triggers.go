@@ -9,16 +9,11 @@ import (
 	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
 )
 
-func createTriggers(db *sql.DB, dbName, TriggerChangelogTable string) {
+func createTriggers(db *sql.DB, dbName, TriggerChangelogTable string) error {
 	tablesAndColumns, err := getAllTablesAndColumns(db, dbName)
 	if err != nil {
 		log.Println(err)
-	}
-
-	//Create the changelog table where changes will be logged
-	err = createMetaChangeLogTable(db)
-	if err != nil {
-		log.Println(err)
+		return err
 	}
 
 	//loop through all tables to set triggers for each of them.
@@ -67,6 +62,7 @@ func createTriggers(db *sql.DB, dbName, TriggerChangelogTable string) {
 		}
 
 	}
+	return nil
 }
 
 //createInsertTrigger for any given tablename, to store any newly added value to the table, and a form of primary key to access the data if need be.
