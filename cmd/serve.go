@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"log"
+
 	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
 	"github.com/robfig/cron"
 	"github.com/spf13/cobra"
@@ -16,7 +18,10 @@ var serveCmd = &cobra.Command{
 		c := cron.New()
 		//runs ever 2 minutes for debugging purposes. TODO: make the time configurable
 		c.AddFunc("0 02 * * * *", func() {
-			//syncDataToMiddle()
+			err := performSync()
+			if err != nil {
+				log.Println(err)
+			}
 		})
 		c.Start()
 
