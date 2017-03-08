@@ -1,4 +1,4 @@
-package cmd
+package mysqlprovider
 
 import (
 	"database/sql"

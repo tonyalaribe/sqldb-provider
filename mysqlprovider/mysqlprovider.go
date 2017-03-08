@@ -5,12 +5,16 @@ import (
 	"log"
 
 	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
+	"gitlab.com/middlefront/sqldb-provider/driver"
 )
 
 type MySQLProvider struct {
 	db     *sql.DB
 	dbName string
 }
+
+const meta_changelog_table = "meta_changelog"
+const meta_data_table = "meta_data"
 
 func New(dbType, dbConnectionString, dbName string) (*MySQLProvider, error) {
 	var mp MySQLProvider
@@ -33,37 +37,51 @@ func New(dbType, dbConnectionString, dbName string) (*MySQLProvider, error) {
 
 func (mp *MySQLProvider) Initialize() {
 	var err error
-	err = createMetaChangeLogTable(mp.db, "meta_changelog")
+	err = createMetaChangeLogTable(mp.db, meta_changelog_table)
 	if err != nil {
 		log.Println(err)
 	}
-	err = createMetaDataTable(mp.db, "meta_data")
+	err = createMetaDataTable(mp.db, meta_data_table)
 	if err != nil {
 		log.Println(err)
 	}
-	err = createTriggers(mp.db, mp.dbName, "meta_changelog")
+	err = createTriggers(mp.db, mp.dbName, meta_changelog_table)
 	if err != nil {
 		log.Println(err)
 	}
 
 }
 
-func (mp *MySQLProvider) GetUpdatesForSync() {
+func (mp *MySQLProvider) GetUpdatesForSync() (driver.Responses, error) {
 	log.Println(mp)
+
+	resp := driver.Responses{}
 	var err error
 
-	lastSync, err := getLastSync(mp.db, "meta_data")
+	lastSync, err := getLastSync(mp.db, meta_data_table)
 	if err != nil {
 		log.Println(err)
 	}
 
-	//if lastSync
-	// tables, err := queries.GetAllTables(db)
-	// if err != nil {
-	// 	log.Printf("unable to get dataBases. Error: %+v", err.Error())
-	// 	return err
-	// }
+	if lastSync == "" {
+		resp, err = mp.getDataForFirstSync()
+		if err != nil {
+			log.Println(err)
+		}
+		return resp, nil
+	}
+	resp, err = mp.getDataForRegularSync(lastSync)
+	if err != nil {
+		log.Println(err)
+	}
 
-	log.Println(lastSync)
+	return resp, nil
+}
 
+func (mp *MySQLProvider) ConfirmSync() error {
+	err := setLastSyncToNow(mp.db, meta_data_table)
+	if err != nil {
+		return err
+	}
+	return nil
 }

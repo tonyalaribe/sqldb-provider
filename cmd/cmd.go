@@ -5,24 +5,28 @@ import (
 	"log"
 	"os"
 
+	"gitlab.com/middlefront/sqldb-provider/driver"
 	"gitlab.com/middlefront/sqldb-provider/mysqlprovider"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-type SQLProvider interface {
-	Initialize()
-	GetUpdatesForSync()
+type Config struct {
+	dbConnectionString string
+	dbType             string
+	clientToken        string
+	dbName             string
+	cluster            string
+	natsURL            string
 }
 
 var (
-	cfgFile            string
-	dbConnectionString string
-	dbType             string
-	clientTokenString  string
-	dbName             string
-	dbprovider         SQLProvider
+	cfgFile string
+
+	dbprovider driver.SQLProvider
+
+	config Config
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -30,7 +34,6 @@ var RootCmd = &cobra.Command{
 	Use:   "sqldb-provider",
 	Short: "Publish data to middle server",
 	Long: `sqldb-provider makes it possible to publish data from an sql database to the middle server either once, or at intervals
-
 	`,
 }
 
@@ -72,18 +75,17 @@ func initConfig() {
 
 	//This initialization is placed here, because initConfig is a callback that is called after cobra has parsed the config file and other variables. The other ideal location would have been the init function, but the init function is called before the config has been parsed, and hence the absense of the needed variables.
 
-	dbConnectionString = viper.GetString("database-connection-string")
-	dbType = viper.GetString("database-type")
-	clientTokenString = viper.GetString("client-token")
-	dbName = viper.GetString("database-name")
+	config.dbConnectionString = viper.GetString("database-connection-string")
+	config.dbType = viper.GetString("database-type")
+	config.clientToken = viper.GetString("client-token")
+	config.dbName = viper.GetString("database-name")
 
-	log.Println(dbType)
-	log.Println(dbConnectionString)
-	log.Println(dbName)
+	config.cluster = viper.GetString("nats-cluster")
+	config.natsURL = viper.GetString("nats-url")
 
-	mysqldb, err := mysqlprovider.New(dbType, dbConnectionString, dbName)
+	mysqldb, err := mysqlprovider.New(config.dbType, config.dbConnectionString, config.dbName)
 	if err != nil {
 		log.Println(err)
 	}
-	dbprovider = SQLProvider(mysqldb)
+	dbprovider = driver.SQLProvider(mysqldb)
 }
