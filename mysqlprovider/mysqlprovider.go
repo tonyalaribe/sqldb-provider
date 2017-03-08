@@ -2,9 +2,11 @@ package mysqlprovider
 
 import (
 	"database/sql"
+	"encoding/json"
 	"log"
 
 	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
+	"gitlab.com/middlefront/sqldb-provider/driver"
 )
 
 type MySQLProvider struct {
@@ -66,4 +68,30 @@ func (mp *MySQLProvider) GetUpdatesForSync() {
 
 	log.Println(lastSync)
 
+}
+
+func (mp *MySQLProvider) GetDataForFirstSync() (driver.Responses, error) {
+	resp := driver.Responses{}
+
+	tables, err := getAllTables(mp.db)
+	if err != nil {
+		log.Printf("unable to get dataBases. Error: %+v", err.Error())
+		return resp, err
+	}
+	//decalared outside the loop to prevent excessive heap allocations
+	var dat []map[string]interface{}
+
+	for _, table := range tables {
+		tableJSON, err := getJSON(mp.db, "select * from "+table)
+		if err != nil {
+			log.Printf("unable to convert table data to json. Error: %+v", err)
+		}
+
+		err = json.Unmarshal([]byte(tableJSON), &dat)
+		if err != nil {
+			log.Printf("unable to unmarshall json to []map[string]interface. Error: %+v", err)
+		}
+		resp.Data[table] = dat
+	}
+	return resp, nil
 }

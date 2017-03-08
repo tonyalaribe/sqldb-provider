@@ -5,16 +5,12 @@ import (
 	"log"
 	"os"
 
+	"gitlab.com/middlefront/sqldb-provider/driver"
 	"gitlab.com/middlefront/sqldb-provider/mysqlprovider"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-type SQLProvider interface {
-	Initialize()
-	GetUpdatesForSync()
-}
 
 var (
 	cfgFile            string
@@ -22,7 +18,7 @@ var (
 	dbType             string
 	clientTokenString  string
 	dbName             string
-	dbprovider         SQLProvider
+	dbprovider         driver.SQLProvider
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -30,7 +26,6 @@ var RootCmd = &cobra.Command{
 	Use:   "sqldb-provider",
 	Short: "Publish data to middle server",
 	Long: `sqldb-provider makes it possible to publish data from an sql database to the middle server either once, or at intervals
-
 	`,
 }
 
@@ -85,5 +80,5 @@ func initConfig() {
 	if err != nil {
 		log.Println(err)
 	}
-	dbprovider = SQLProvider(mysqldb)
+	dbprovider = driver.SQLProvider(mysqldb)
 }
