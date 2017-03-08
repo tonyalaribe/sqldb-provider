@@ -6,6 +6,6 @@ type Responses struct {
 
 type SQLProvider interface {
 	Initialize()
-	GetUpdatesForSync()
-	GetDataForFirstSync() (Responses, error)
+	GetUpdatesForSync() (Responses, error)
+	//GetDataForFirstSync() (Responses, error)
 }

@@ -12,13 +12,21 @@ import (
 	"github.com/spf13/viper"
 )
 
-var (
-	cfgFile            string
+type Config struct {
 	dbConnectionString string
 	dbType             string
-	clientTokenString  string
+	clientToken        string
 	dbName             string
-	dbprovider         driver.SQLProvider
+	cluster            string
+	natsURL            string
+}
+
+var (
+	cfgFile string
+
+	dbprovider driver.SQLProvider
+
+	config Config
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -67,16 +75,15 @@ func initConfig() {
 
 	//This initialization is placed here, because initConfig is a callback that is called after cobra has parsed the config file and other variables. The other ideal location would have been the init function, but the init function is called before the config has been parsed, and hence the absense of the needed variables.
 
-	dbConnectionString = viper.GetString("database-connection-string")
-	dbType = viper.GetString("database-type")
-	clientTokenString = viper.GetString("client-token")
-	dbName = viper.GetString("database-name")
+	config.dbConnectionString = viper.GetString("database-connection-string")
+	config.dbType = viper.GetString("database-type")
+	config.clientToken = viper.GetString("client-token")
+	config.dbName = viper.GetString("database-name")
 
-	log.Println(dbType)
-	log.Println(dbConnectionString)
-	log.Println(dbName)
+	config.cluster = viper.GetString("database-name")
+	config.natsURL = viper.GetString("database-name")
 
-	mysqldb, err := mysqlprovider.New(dbType, dbConnectionString, dbName)
+	mysqldb, err := mysqlprovider.New(config.dbType, config.dbConnectionString, config.dbName)
 	if err != nil {
 		log.Println(err)
 	}

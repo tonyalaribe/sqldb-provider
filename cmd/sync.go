@@ -15,6 +15,10 @@
 package cmd
 
 import (
+	"log"
+
+	"gitlab.com/middlefront/middle/core"
+
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +29,25 @@ var syncCmd = &cobra.Command{
 	Long: `This command runs queries
 	against configured databases and publishes the results to Middle.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		dbprovider.GetUpdatesForSync()
+		responses, err := dbprovider.GetUpdatesForSync()
+		if err != nil {
+			log.Println(err)
+		}
+		for table, content := range responses.Data {
+			log.Printf("%+v", content)
+			req := &core.PublishRequest{}
+			req.Token = config.clientToken //global variable TODO: global variables should be grouped in a struct for ease of use and identification
+			req.Type = table + ".upsert"
+			req.TypeVersion = "1.0" //TODO:Increment Type version with each sync
+			//req.Data = dat
+
+			// c := client.DefaultMiddleClient(config.cluster, config.natsURL, config.clientToken)
+			//
+			// err = c.Publish(*req)
+			// if err != nil {
+			// 	log.Printf("unable to publish json to middle.  Error: %+v", err)
+			// }
+		}
 	},
 }
 

@@ -1,19 +1,15 @@
 package cmd
 
-import (
-	"log"
-)
-
 func syncDataToMiddle() error {
 	// clientToken := viper.GetString(clientTokenString)
 	// cluster := viper.GetString(props.NatsClusterProp)
 	// natsURL := viper.GetString(props.NatsURLProp)
 	//
-	responses, err := dbprovider.GetDataForFirstSync()
-	if err != nil {
-		log.Println(err)
-	}
-	log.Println(responses)
+	// responses, err := dbprovider.GetDataForFirstSync()
+	// if err != nil {
+	// 	log.Println(err)
+	// }
+	// log.Println(responses)
 	return nil
 }
 

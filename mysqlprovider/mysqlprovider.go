@@ -50,8 +50,10 @@ func (mp *MySQLProvider) Initialize() {
 
 }
 
-func (mp *MySQLProvider) GetUpdatesForSync() {
+func (mp *MySQLProvider) GetUpdatesForSync() (driver.Responses, error) {
 	log.Println(mp)
+
+	resp := driver.Responses{}
 	var err error
 
 	lastSync, err := getLastSync(mp.db, "meta_data")
@@ -59,19 +61,21 @@ func (mp *MySQLProvider) GetUpdatesForSync() {
 		log.Println(err)
 	}
 
-	//if lastSync
-	// tables, err := queries.GetAllTables(db)
-	// if err != nil {
-	// 	log.Printf("unable to get dataBases. Error: %+v", err.Error())
-	// 	return err
-	// }
+	if lastSync == "" {
+		resp, err = mp.getDataForFirstSync()
+		if err != nil {
+			log.Println(err)
+		}
+		return resp, nil
+	}
 
 	log.Println(lastSync)
-
+	return resp, nil
 }
 
-func (mp *MySQLProvider) GetDataForFirstSync() (driver.Responses, error) {
+func (mp *MySQLProvider) getDataForFirstSync() (driver.Responses, error) {
 	resp := driver.Responses{}
+	resp.Data = make(map[string][]map[string]interface{})
 
 	tables, err := getAllTables(mp.db)
 	if err != nil {
@@ -82,7 +86,7 @@ func (mp *MySQLProvider) GetDataForFirstSync() (driver.Responses, error) {
 	var dat []map[string]interface{}
 
 	for _, table := range tables {
-		tableJSON, err := getJSON(mp.db, "select * from "+table)
+		tableJSON, err := getJSON(mp.db, "select * from "+table+" limit 1")
 		if err != nil {
 			log.Printf("unable to convert table data to json. Error: %+v", err)
 		}
@@ -91,6 +95,7 @@ func (mp *MySQLProvider) GetDataForFirstSync() (driver.Responses, error) {
 		if err != nil {
 			log.Printf("unable to unmarshall json to []map[string]interface. Error: %+v", err)
 		}
+
 		resp.Data[table] = dat
 	}
 	return resp, nil
