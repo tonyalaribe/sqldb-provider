@@ -14,6 +14,9 @@ type MySQLProvider struct {
 	dbName string
 }
 
+const meta_changelog_table = "meta_changelog"
+const meta_data_table = "meta_data"
+
 func New(dbType, dbConnectionString, dbName string) (*MySQLProvider, error) {
 	var mp MySQLProvider
 
@@ -35,15 +38,15 @@ func New(dbType, dbConnectionString, dbName string) (*MySQLProvider, error) {
 
 func (mp *MySQLProvider) Initialize() {
 	var err error
-	err = createMetaChangeLogTable(mp.db, "meta_changelog")
+	err = createMetaChangeLogTable(mp.db, meta_changelog_table)
 	if err != nil {
 		log.Println(err)
 	}
-	err = createMetaDataTable(mp.db, "meta_data")
+	err = createMetaDataTable(mp.db, meta_data_table)
 	if err != nil {
 		log.Println(err)
 	}
-	err = createTriggers(mp.db, mp.dbName, "meta_changelog")
+	err = createTriggers(mp.db, mp.dbName, meta_changelog_table)
 	if err != nil {
 		log.Println(err)
 	}
@@ -56,7 +59,7 @@ func (mp *MySQLProvider) GetUpdatesForSync() (driver.Responses, error) {
 	resp := driver.Responses{}
 	var err error
 
-	lastSync, err := getLastSync(mp.db, "meta_data")
+	lastSync, err := getLastSync(mp.db, meta_data_table)
 	if err != nil {
 		log.Println(err)
 	}
@@ -86,6 +89,10 @@ func (mp *MySQLProvider) getDataForFirstSync() (driver.Responses, error) {
 	var dat []map[string]interface{}
 
 	for _, table := range tables {
+		if table == meta_changelog_table || table == meta_data_table {
+			continue
+		}
+
 		tableJSON, err := getJSON(mp.db, "select * from "+table+" limit 1")
 		if err != nil {
 			log.Printf("unable to convert table data to json. Error: %+v", err)
