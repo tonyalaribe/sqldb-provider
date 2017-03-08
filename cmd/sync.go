@@ -15,9 +15,10 @@
 package cmd
 
 import (
+	"encoding/json"
 	"log"
 
-	"gitlab.com/middlefront/middle/core"
+	client "gitlab.com/middlefront/go-middle-client"
 
 	"github.com/spf13/cobra"
 )
@@ -35,18 +36,25 @@ var syncCmd = &cobra.Command{
 		}
 		for table, content := range responses.Data {
 			log.Printf("%+v", content)
-			req := &core.PublishRequest{}
+			payload, err := json.Marshal(content)
+			if err != nil {
+				log.Println(err)
+			}
+			log.Println(string(payload))
+
+			req := &client.Batch{}
 			req.Token = config.clientToken //global variable TODO: global variables should be grouped in a struct for ease of use and identification
 			req.Type = table + ".upsert"
-			req.TypeVersion = "1.0" //TODO:Increment Type version with each sync
-			//req.Data = dat
+			req.TypeVersion = "2.0" //TODO:Increment Type version with each sync
+			req.Provider = "mysql.provider"
+			req.Data = payload
 
-			// c := client.DefaultMiddleClient(config.cluster, config.natsURL, config.clientToken)
-			//
-			// err = c.Publish(*req)
-			// if err != nil {
-			// 	log.Printf("unable to publish json to middle.  Error: %+v", err)
-			// }
+			c := client.DefaultMiddleClient(config.cluster, config.natsURL, config.clientToken)
+
+			err = c.Publish(*req)
+			if err != nil {
+				log.Printf("unable to publish json to middle.  Error: %+v", err)
+			}
 		}
 	},
 }

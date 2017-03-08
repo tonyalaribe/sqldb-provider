@@ -80,8 +80,8 @@ func initConfig() {
 	config.clientToken = viper.GetString("client-token")
 	config.dbName = viper.GetString("database-name")
 
-	config.cluster = viper.GetString("database-name")
-	config.natsURL = viper.GetString("database-name")
+	config.cluster = viper.GetString("nats-cluster")
+	config.natsURL = viper.GetString("nats-url")
 
 	mysqldb, err := mysqlprovider.New(config.dbType, config.dbConnectionString, config.dbName)
 	if err != nil {
