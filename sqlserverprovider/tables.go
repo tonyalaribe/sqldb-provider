@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
+	_ "github.com/denisenkom/go-mssqldb" //A mysql driver to allow database/sql understand the database
 )
 
 //getAllTables returns all tables in a given database, and an error, if unsuccessful

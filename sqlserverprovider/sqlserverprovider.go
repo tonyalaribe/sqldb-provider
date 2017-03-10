@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"log"
 
-	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
+	_ "github.com/denisenkom/go-mssqldb" //A mysql driver to allow database/sql understand the database
 	"gitlab.com/middlefront/sqldb-provider/driver"
 )
 
@@ -24,6 +24,7 @@ func New(dbType, dbConnectionString, dbName string) (*MySQLProvider, error) {
 		log.Println(err.Error())
 	}
 	// make sure connection is available
+
 	err = db.Ping()
 	if err != nil {
 		log.Printf("unable to ping database. Error: %+v", err.Error())
@@ -32,6 +33,7 @@ func New(dbType, dbConnectionString, dbName string) (*MySQLProvider, error) {
 	mp.db = db
 	mp.dbName = dbName
 
+	log.Println("pinged successfully")
 	return &mp, nil
 }
 

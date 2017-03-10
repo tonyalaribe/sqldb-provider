@@ -5,8 +5,13 @@
 
 
 # SQL SERVER Config Details
+database-connection-string: odbc:server=51.15.134.43;user id=sa;password={Fm5354$52C};database=Informant20_Training;connection timeout=30
+database-type: sqlserver
+database-name: Informant20_Training
+
 
 client-token: "eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJjbGllbnRJZCI6IndGUEFtUExsbHEiLCJleHAiOjE0OTExMzQwOTIsIm5iZiI6MTQ4ODU0MjA5MiwicGVybWlzc2lvbnMiOnsicHVibGlzaCI6WyJtaWRkbGUucHVibGlzaCIsIm1pZGRsZS5wdWxsIiwiX1NUQU4uZGlzY292ZXIuKiIsIl9TVEFOLmNsb3NlLioiXSwic3Vic2NyaWJlIjpbIm1pZGRsZS5tZl9lZ1RiVUVwTyIsIm1pZGRsZS5tZl9lZ1RiVUVwTy53RlBBbVBMbGxxIiwiX0lOQk9YLioiLCJfU1RBTi5hY2tzLioiXX0sInJlcG9zaXRvcnlJZCI6Im1mX2VnVGJVRXBPIiwidXNlcm5hbWUiOiJ3RlBBbVBMbGxxIn0.2KjkFqhxknOS6E97FrcvZM-78ce-hfiOBDqSVDa4DCldYEp3TIpxg0GgRq4ygYhU"
+
 
 
 nats-url: nats://localhost:4225
