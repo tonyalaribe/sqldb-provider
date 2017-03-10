@@ -57,7 +57,7 @@ func (mp *MySQLProvider) getDataForFirstSync() (driver.Responses, error) {
 
 func setLastSyncToNow(db *sql.DB, metaDataTable string) error {
 	query := fmt.Sprintf(`UPDATE %s SET
-			 DataValue = NOW()
+			 DataValue = GETDATE()
 			 WHERE DataKey='last_sync';`, metaDataTable)
 
 	_, err := db.Query(query)
