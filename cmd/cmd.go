@@ -7,6 +7,7 @@ import (
 
 	"gitlab.com/middlefront/sqldb-provider/driver"
 	"gitlab.com/middlefront/sqldb-provider/mysqlprovider"
+	"gitlab.com/middlefront/sqldb-provider/sqlserverprovider"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -82,10 +83,21 @@ func initConfig() {
 
 	config.cluster = viper.GetString("nats-cluster")
 	config.natsURL = viper.GetString("nats-url")
-
-	mysqldb, err := mysqlprovider.New(config.dbType, config.dbConnectionString, config.dbName)
-	if err != nil {
-		log.Println(err)
+	switch config.dbType {
+	case "mysql":
+		sqldb, err := mysqlprovider.New(config.dbType, config.dbConnectionString, config.dbName)
+		if err != nil {
+			log.Println(err)
+		}
+		dbprovider = driver.SQLProvider(sqldb)
+		break
+	case "sqlserver":
+		sqldb, err := sqlserverprovider.New(config.dbType, config.dbConnectionString, config.dbName)
+		if err != nil {
+			log.Println(err)
+		}
+		dbprovider = driver.SQLProvider(sqldb)
+	default:
+		log.Fatal("unknown database Type: " + config.dbType)
 	}
-	dbprovider = driver.SQLProvider(mysqldb)
 }
