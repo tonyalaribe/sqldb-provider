@@ -39,6 +39,7 @@ func New(dbType, dbConnectionString, dbName string) (*MySQLProvider, error) {
 
 func (mp *MySQLProvider) Initialize() {
 	var err error
+
 	err = createMetaChangeLogTable(mp.db, meta_changelog_table)
 	if err != nil {
 		log.Println(err)

@@ -6,13 +6,16 @@ import (
 	"fmt"
 	"log"
 
-	_ "github.com/denisenkom/go-mssqldb" //A mysql driver to allow database/sql understand the database
+	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
 )
 
 //getAllTables returns all tables in a given database, and an error, if unsuccessful
-func getAllTables(db *sql.DB) ([]string, error) {
+func getAllTables(db *sql.DB, dbName string) ([]string, error) {
 	var tables []string
-	rows, err := db.Query("show TABLES")
+
+	query := fmt.Sprintf("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_CATALOG='%s';", dbName)
+
+	rows, err := db.Query(query)
 	if err != nil {
 		log.Fatalf("unable to get tables from database. Error: %+v", err.Error())
 		return tables, err
@@ -21,12 +24,13 @@ func getAllTables(db *sql.DB) ([]string, error) {
 	var tablename string
 	for rows.Next() {
 		err = rows.Scan(&tablename)
+
 		if err != nil { /* error handling. Not sure what kind of errors would return nil when rows.Next() had returned true. TODO: handle error appropriately */
 			log.Fatalf("unable to get tables from database. Error: %+v", err.Error())
 		}
 		tables = append(tables, tablename)
 	}
-
+	log.Println(tables)
 	return tables, err
 }
 
@@ -104,14 +108,13 @@ func getAllPrimaryKeysInTable(db *sql.DB, tablename string) ([]string, error) {
 func createMetaChangeLogTable(db *sql.DB, metaTableName string) error {
 
 	query := fmt.Sprintf(`CREATE TABLE %s(
-		 ID int NOT NULL AUTO_INCREMENT,
+		 ID int NOT NULL identity(1, 1) primary key,
 		 TableName varchar(255),
 		 PrimaryKeys varchar(255),
-		 OldColumnValue LONGTEXT,
-		 NewColumnValue LONGTEXT,
+		 OldColumnValue NTEXT,
+		 NewColumnValue NTEXT,
 		 TriggerType varchar(10),
-		 ActionDate datetime NOT NULL DEFAULT NOW(),
-		 PRIMARY KEY(ID)
+		 ActionDate datetime NOT NULL DEFAULT GETDATE()
 	);`, metaTableName)
 
 	_, err := db.Query(query)

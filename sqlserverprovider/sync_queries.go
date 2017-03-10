@@ -27,7 +27,7 @@ func (mp *MySQLProvider) getDataForFirstSync() (driver.Responses, error) {
 	resp := driver.Responses{}
 	resp.Data = make(map[string][]map[string]interface{})
 
-	tables, err := getAllTables(mp.db)
+	tables, err := getAllTables(mp.db, mp.dbName)
 	if err != nil {
 		log.Printf("unable to get dataBases. Error: %+v", err.Error())
 		return resp, err
