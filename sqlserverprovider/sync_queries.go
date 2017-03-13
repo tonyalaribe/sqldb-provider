@@ -52,6 +52,7 @@ func (mp *MySQLProvider) getDataForFirstSync() (driver.Responses, error) {
 
 		resp.Data[table] = dat
 	}
+
 	return resp, nil
 }
 

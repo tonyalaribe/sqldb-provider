@@ -30,7 +30,7 @@ func getAllTables(db *sql.DB, dbName string) ([]string, error) {
 		}
 		tables = append(tables, tablename)
 	}
-	log.Println(tables)
+
 	return tables, err
 }
 

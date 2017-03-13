@@ -15,8 +15,11 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
+	"io/ioutil"
 	"log"
+	"os"
 
 	client "gitlab.com/middlefront/go-middle-client"
 
@@ -28,6 +31,7 @@ func performSync() error {
 	if err != nil {
 		log.Println(err)
 	}
+
 	if len(responses.Data) > 0 {
 		for table, content := range responses.Data {
 
@@ -39,16 +43,39 @@ func performSync() error {
 			req := &client.Batch{}
 			req.Token = config.clientToken
 			req.Type = table + ".upsert"
-			req.TypeVersion = "2.0" //TODO:Increment Type version with each sync
-			req.Provider = "mysql.provider"
+			req.TypeVersion = config.providerVersion //TODO:Increment Type version with each sync
+			req.Provider = config.providerName
 			req.Data = payload
 
-			c := client.DefaultMiddleClient(config.cluster, config.natsURL, config.clientToken)
+			c := client.DefaultMiddleClient(config.natsURL, config.clientToken)
 
 			err = c.Publish(*req)
 			if err != nil {
 				log.Printf("unable to publish json to middle.  Error: %+v", err)
 			}
+
+			/*** Debugging **/
+
+			jsonval, err := json.Marshal(req)
+			if err != nil {
+				log.Println(err)
+			}
+
+			pretty := bytes.Buffer{}
+			err = json.Indent(&pretty, jsonval, "", "\t")
+			if err != nil {
+				log.Println("JSON parse error: ", err)
+
+			}
+
+			err = ioutil.WriteFile("./uploaded_data/data"+table+".json", pretty.Bytes(), os.ModePerm)
+			if err != nil {
+				log.Println(err)
+			}
+
+			//log.Println(string(pretty.String()))
+
+			/*** **/
 		}
 
 		//Confirm sync, so the date of sync is stored, to prevent republishing data.
@@ -62,12 +89,12 @@ func performSync() error {
 	} else if responses.DataString != "" {
 		req := &client.Batch{}
 		req.Token = config.clientToken
-		req.Type = "mysqlprovider.upsert"
-		req.TypeVersion = "2.0" //TODO:Increment Type version with each sync
-		req.Provider = "mysqlprovider"
+		req.Type = "dataupdates.upsert"
+		req.TypeVersion = config.providerVersion //TODO:Increment Type version with each sync
+		req.Provider = config.providerName
 		req.Data = json.RawMessage(responses.DataString)
 
-		c := client.DefaultMiddleClient(config.cluster, config.natsURL, config.clientToken)
+		c := client.DefaultMiddleClient(config.natsURL, config.clientToken)
 
 		err = c.Publish(*req)
 		if err != nil {
