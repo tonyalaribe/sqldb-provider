@@ -24,6 +24,7 @@ type Config struct {
 	cluster            string
 	natsURL            string
 	perPage            int
+	excludedTables     []string
 }
 
 var (
@@ -90,17 +91,18 @@ func initConfig() {
 	config.cluster = viper.GetString("nats-cluster")
 	config.natsURL = viper.GetString("nats-url")
 	config.perPage = viper.GetInt("per-page")
+	config.excludedTables = viper.GetStringSlice("excluded-tables")
 
 	switch config.dbType {
 	case "mysql":
-		sqldb, err := mysqlprovider.New(config.dbType, config.dbConnectionString, config.dbName, config.perPage)
+		sqldb, err := mysqlprovider.New(config.dbType, config.dbConnectionString, config.dbName, config.perPage, config.excludedTables)
 		if err != nil {
 			log.Fatal(err)
 		}
 		dbprovider = driver.SQLProvider(sqldb)
 		break
 	case "sqlserver":
-		sqldb, err := sqlserverprovider.New(config.dbType, config.dbConnectionString, config.dbName, config.perPage)
+		sqldb, err := sqlserverprovider.New(config.dbType, config.dbConnectionString, config.dbName, config.perPage, config.excludedTables)
 		if err != nil {
 			log.Fatal(err)
 		}
