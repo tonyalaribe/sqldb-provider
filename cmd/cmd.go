@@ -7,7 +7,6 @@ import (
 
 	"gitlab.com/middlefront/sqldb-provider/driver"
 	"gitlab.com/middlefront/sqldb-provider/mysqlprovider"
-	"gitlab.com/middlefront/sqldb-provider/sqlserverprovider"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -97,12 +96,12 @@ func initConfig() {
 		}
 		dbprovider = driver.SQLProvider(sqldb)
 		break
-	case "sqlserver":
-		sqldb, err := sqlserverprovider.New(config.dbType, config.dbConnectionString, config.dbName)
-		if err != nil {
-			log.Fatal(err)
-		}
-		dbprovider = driver.SQLProvider(sqldb)
+	// case "sqlserver":
+	// 	sqldb, err := sqlserverprovider.New(config.dbType, config.dbConnectionString, config.dbName)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	dbprovider = driver.SQLProvider(sqldb)
 	default:
 		log.Fatal("unknown database Type: " + config.dbType)
 	}
