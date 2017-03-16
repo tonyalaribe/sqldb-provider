@@ -49,7 +49,7 @@ func (mp *SQLProvider) Initialize() {
 	if err != nil {
 		log.Println(err)
 	}
-	err = createTriggers(mp.db, mp.dbName, meta_changelog_table)
+	err = createTriggers(mp.db, mp.dbName, meta_changelog_table, mp.excludedTables)
 	if err != nil {
 		log.Println(err)
 	}
@@ -85,4 +85,14 @@ func (mp *SQLProvider) ConfirmSync() error {
 		return err
 	}
 	return nil
+}
+
+//Use within performFirstSync to makesure table does not exist in exclude list, also usefull when dealing with triggers
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }

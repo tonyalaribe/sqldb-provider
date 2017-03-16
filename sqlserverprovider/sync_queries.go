@@ -35,16 +35,6 @@ func (mp *SQLProvider) performRegularSync(lastSync string, sync func(string, str
 	return nil
 }
 
-//Use within performFirstSync to makesure table does not exist in exclude list
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
 //performFirstSync is different from its counterpart in mySQL, because of the use of ROW_NUMBER() which is abscent in mysql. There is also the need to order by primary keys for the query to work, unlike with mysql where the query works without order by.
 func (mp *SQLProvider) performFirstSync(sync func(string, string)) error {
 	perPage := mp.perPage
@@ -56,9 +46,7 @@ func (mp *SQLProvider) performFirstSync(sync func(string, string)) error {
 
 	for _, table := range tables {
 
-		if table == meta_changelog_table || table == meta_data_table {
-			continue
-		} else if contains(mp.excludedTables, table) {
+		if table == meta_changelog_table || table == meta_data_table || contains(mp.excludedTables, table) {
 			continue
 		}
 

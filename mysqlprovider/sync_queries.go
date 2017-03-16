@@ -34,16 +34,6 @@ func (mp *SQLProvider) performRegularSync(lastSync string, sync func(string, str
 	return nil
 }
 
-//Use within performFirstSync to makesure table does not exist in exclude list
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
 func (mp *SQLProvider) performFirstSync(sync func(string, string)) error {
 	perPage := mp.perPage
 	tables, err := getAllTables(mp.db)
