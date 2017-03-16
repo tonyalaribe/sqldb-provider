@@ -60,7 +60,7 @@ func setLastSyncToNow(db *sql.DB, metaDataTable string) error {
 			 DataValue = NOW()
 			 WHERE DataKey='last_sync';`, metaDataTable)
 
-	_, err := db.Query(query)
+	_, err := db.Exec(query)
 	if err != nil {
 		log.Println(err)
 		return err

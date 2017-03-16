@@ -129,7 +129,7 @@ func createMetaDataTable(db *sql.DB, metaDataTable string) error {
 			 PRIMARY KEY(DataKey)
 		);`, metaDataTable)
 
-	_, err := db.Query(query)
+	_, err := db.Exec(query)
 	if err != nil {
 		log.Println(err)
 		// return err
@@ -137,7 +137,7 @@ func createMetaDataTable(db *sql.DB, metaDataTable string) error {
 	query = fmt.Sprintf(`INSERT INTO %s (DataKey)
 			 VALUES ('last_sync');`, metaDataTable)
 
-	_, err = db.Query(query)
+	_, err = db.Exec(query)
 	if err != nil {
 		log.Println(err)
 		// return err

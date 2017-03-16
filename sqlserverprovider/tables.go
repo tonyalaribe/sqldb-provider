@@ -1,4 +1,4 @@
-//Package mysqlprovider package exports database access queries, to help decrease clutter in the packages using these queries.
+//Package sqlserverprovider package exports database access queries, to help decrease clutter in the packages using these queries.
 package sqlserverprovider
 
 import (
@@ -117,7 +117,7 @@ func createMetaChangeLogTable(db *sql.DB, metaTableName string) error {
 		 ActionDate datetime NOT NULL DEFAULT GETDATE()
 	);`, metaTableName)
 
-	_, err := db.Query(query)
+	_, err := db.Exec(query)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -132,7 +132,7 @@ func createMetaDataTable(db *sql.DB, metaDataTable string) error {
 			 PRIMARY KEY(DataKey)
 		);`, metaDataTable)
 
-	_, err := db.Query(query)
+	_, err := db.Exec(query)
 	if err != nil {
 		log.Println(err)
 		// return err
@@ -140,7 +140,7 @@ func createMetaDataTable(db *sql.DB, metaDataTable string) error {
 	query = fmt.Sprintf(`INSERT INTO %s (DataKey)
 			 VALUES ('last_sync');`, metaDataTable)
 
-	_, err = db.Query(query)
+	_, err = db.Exec(query)
 	if err != nil {
 		log.Println(err)
 		// return err
