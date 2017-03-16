@@ -1,9 +1,0 @@
-{
-	"token": "eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJjbGllbnRJZCI6IlFqT3VrZlZTWVAiLCJleHAiOjE0OTE5ODg0NTksIm5iZiI6MTQ4OTM5NjQ1OSwicGVybWlzc2lvbnMiOnsicHVibGlzaCI6WyJtaWRkbGUucHVibGlzaCIsIm1pZGRsZS5wdWxsIiwiX1NUQU4uZGlzY292ZXIuKiIsIl9TVEFOLmNsb3NlLioiXSwic3Vic2NyaWJlIjpbIm1pZGRsZS5tZl9YWHdpUkp0RCIsIm1pZGRsZS5tZl9YWHdpUkp0RC5Rak91a2ZWU1lQIiwiX0lOQk9YLioiLCJfU1RBTi5hY2tzLioiXX0sInJlcG9zaXRvcnlJZCI6Im1mX1hYd2lSSnREIiwidXNlcm5hbWUiOiJRak91a2ZWU1lQIn0.Z9UmViCZKOizkh91lKiZ-Qh3X5wrST0NteD14ZCNqojN9jqGtdcfdfLaYHJ4lUSg",
-	"idField": "",
-	"noPersist": false,
-	"type": "RiciQueueItem.upsert",
-	"typeVersion": "2",
-	"data": [],
-	"provider": "sqlserver.provider"
-}
