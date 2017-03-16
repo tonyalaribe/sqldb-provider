@@ -10,53 +10,17 @@ import (
 )
 
 func performSync() error {
-	responses, err := dbprovider.GetUpdatesForSync()
-	if err != nil {
-		log.Println(err)
-	}
-
-	if len(responses.Data) > 0 {
-		for table, content := range responses.Data {
-			var payload []byte
-			payload, err = json.Marshal(content)
-			if err != nil {
-				log.Println(err)
-			}
-			req := &client.Batch{}
-			req.Token = config.clientToken
-			req.Type = table + ".upsert"
-			req.TypeVersion = config.providerVersion //TODO:Increment Type version with each sync
-			req.Provider = config.providerName
-			req.Data = payload
-
-			c := client.DefaultMiddleClient(config.natsURL, config.clientToken)
-
-			err = c.Publish(*req)
-			if err != nil {
-				log.Printf("unable to publish json to middle.  Error: %+v", err)
-			}
-		}
-
-		//Confirm sync, so the date of sync is stored, to prevent republishing data.
-		err = dbprovider.ConfirmSync()
-		if err != nil {
-			log.Println(err)
-		}
-		log.Println("Sync Performed and Confirmed successfully")
-		//Improper error management. Sometime should be allocated to deciding how errors should be managed
-		return nil
-
-	} else if responses.DataString != "" {
+	err := dbprovider.Sync(func(data string, requestType string) {
 		req := &client.Batch{}
 		req.Token = config.clientToken
-		req.Type = "dataupdates.upsert"
+		req.Type = requestType                   //table + ".upsert"
 		req.TypeVersion = config.providerVersion //TODO:Increment Type version with each sync
 		req.Provider = config.providerName
-		req.Data = json.RawMessage(responses.DataString)
+		req.Data = json.RawMessage(data)
 
 		c := client.DefaultMiddleClient(config.natsURL, config.clientToken)
 
-		err = c.Publish(*req)
+		err := c.Publish(*req)
 		if err != nil {
 			log.Printf("unable to publish json to middle.  Error: %+v", err)
 		}
@@ -67,7 +31,12 @@ func performSync() error {
 			log.Println(err)
 		}
 		log.Println("Sync Performed and Confirmed successfully")
+	})
+	if err != nil {
+		log.Println(err)
+		return err
 	}
+
 	return nil
 }
 

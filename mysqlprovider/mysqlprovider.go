@@ -5,19 +5,19 @@ import (
 	"log"
 
 	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
-	"gitlab.com/middlefront/sqldb-provider/driver"
 )
 
-type MySQLProvider struct {
-	db     *sql.DB
-	dbName string
+type SQLProvider struct {
+	db      *sql.DB
+	dbName  string
+	perPage int //perPage should be the number of rows to be be published at a time, to prevent using up too many resources or reaching maximum message size for middle servers.
 }
 
 const meta_changelog_table = "meta_changelog"
 const meta_data_table = "meta_data"
 
-func New(dbType, dbConnectionString, dbName string) (*MySQLProvider, error) {
-	var mp MySQLProvider
+func New(dbType, dbConnectionString, dbName string, perPage int) (*SQLProvider, error) {
+	var mp SQLProvider
 
 	db, err := sql.Open(dbType, dbConnectionString)
 	if err != nil {
@@ -31,11 +31,13 @@ func New(dbType, dbConnectionString, dbName string) (*MySQLProvider, error) {
 	}
 	mp.db = db
 	mp.dbName = dbName
+	mp.perPage = perPage
 
+	log.Println("pinged database successfully")
 	return &mp, nil
 }
 
-func (mp *MySQLProvider) Initialize() {
+func (mp *SQLProvider) Initialize() {
 	var err error
 	err = createMetaChangeLogTable(mp.db, meta_changelog_table)
 	if err != nil {
@@ -52,39 +54,30 @@ func (mp *MySQLProvider) Initialize() {
 
 }
 
-func (mp *MySQLProvider) GetUpdatesForSync() (driver.Responses, error) {
-	log.Println(mp)
-
-	resp := driver.Responses{}
+func (mp *SQLProvider) Sync(syncFunc func(string, string)) error {
 	var err error
 
-	// lastSync, err := getLastSync(mp.db, meta_data_table)
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-	// //
-	// if lastSync == "" {
-	// 	resp, err = mp.getDataForFirstSync()
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 	}
-	// 	return resp, nil
-	// }
-	// resp, err = mp.getDataForRegularSync(lastSync)
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-
-	//TODO: DELETE for debug purposes
-	resp, err = mp.getDataForFirstSync()
+	lastSync, err := getLastSync(mp.db, meta_data_table)
+	if err != nil {
+		log.Println(err)
+	}
+	//
+	if lastSync == "" {
+		err = mp.performFirstSync(syncFunc)
+		if err != nil {
+			log.Println(err)
+		}
+		return nil
+	}
+	err = mp.performRegularSync(lastSync, syncFunc)
 	if err != nil {
 		log.Println(err)
 	}
 
-	return resp, nil
+	return nil
 }
 
-func (mp *MySQLProvider) ConfirmSync() error {
+func (mp *SQLProvider) ConfirmSync() error {
 	err := setLastSyncToNow(mp.db, meta_data_table)
 	if err != nil {
 		return err

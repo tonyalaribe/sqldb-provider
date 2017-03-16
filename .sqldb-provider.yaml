@@ -1,3 +1,5 @@
+per-page: 100
+
 # MySQL Config details
 # database-connection-string: root@tcp(127.0.0.1:3306)/world
 # database-type: mysql
