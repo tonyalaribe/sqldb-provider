@@ -13,13 +13,18 @@ import (
 	"github.com/spf13/viper"
 )
 
+//Config Holds all the serialised yaml config variables. Grouping the variables here should make maintainance easier (namespacing too)
 type Config struct {
 	dbConnectionString string
 	dbType             string
 	clientToken        string
+	providerName       string
+	providerVersion    string
 	dbName             string
 	cluster            string
 	natsURL            string
+	perPage            int
+	excludedTables     []string
 }
 
 var (
@@ -27,7 +32,7 @@ var (
 
 	dbprovider driver.SQLProvider
 
-	config Config
+	config Config //global variable representing config variables.
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -79,24 +84,30 @@ func initConfig() {
 	config.dbConnectionString = viper.GetString("database-connection-string")
 	config.dbType = viper.GetString("database-type")
 	config.clientToken = viper.GetString("client-token")
+	config.providerName = viper.GetString("provider-name")
+	config.providerVersion = viper.GetString("provider-version")
 	config.dbName = viper.GetString("database-name")
 
 	config.cluster = viper.GetString("nats-cluster")
 	config.natsURL = viper.GetString("nats-url")
+	config.perPage = viper.GetInt("per-page")
+	config.excludedTables = viper.GetStringSlice("excluded-tables")
+
 	switch config.dbType {
 	case "mysql":
-		sqldb, err := mysqlprovider.New(config.dbType, config.dbConnectionString, config.dbName)
+		sqldb, err := mysqlprovider.New(config.dbType, config.dbConnectionString, config.dbName, config.perPage, config.excludedTables)
 		if err != nil {
-			log.Println(err)
+			log.Fatal(err)
 		}
 		dbprovider = driver.SQLProvider(sqldb)
 		break
 	case "sqlserver":
-		sqldb, err := sqlserverprovider.New(config.dbType, config.dbConnectionString, config.dbName)
+		sqldb, err := sqlserverprovider.New(config.dbType, config.dbConnectionString, config.dbName, config.perPage, config.excludedTables)
 		if err != nil {
-			log.Println(err)
+			log.Fatal(err)
 		}
 		dbprovider = driver.SQLProvider(sqldb)
+		break
 	default:
 		log.Fatal("unknown database Type: " + config.dbType)
 	}

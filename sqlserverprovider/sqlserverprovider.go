@@ -4,26 +4,28 @@ import (
 	"database/sql"
 	"log"
 
-	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
-	"gitlab.com/middlefront/sqldb-provider/driver"
+	_ "github.com/denisenkom/go-mssqldb" //A mysql driver to allow database/sql understand the database
 )
 
-type MySQLProvider struct {
-	db     *sql.DB
-	dbName string
+type SQLProvider struct {
+	db             *sql.DB
+	dbName         string
+	perPage        int
+	excludedTables []string
 }
 
 const meta_changelog_table = "meta_changelog"
 const meta_data_table = "meta_data"
 
-func New(dbType, dbConnectionString, dbName string) (*MySQLProvider, error) {
-	var mp MySQLProvider
+func New(dbType, dbConnectionString, dbName string, perPage int, excludedTables []string) (*SQLProvider, error) {
+	var mp SQLProvider
 
 	db, err := sql.Open(dbType, dbConnectionString)
 	if err != nil {
 		log.Println(err.Error())
 	}
 	// make sure connection is available
+
 	err = db.Ping()
 	if err != nil {
 		log.Printf("unable to ping database. Error: %+v", err.Error())
@@ -31,12 +33,16 @@ func New(dbType, dbConnectionString, dbName string) (*MySQLProvider, error) {
 	}
 	mp.db = db
 	mp.dbName = dbName
+	mp.perPage = perPage
+	mp.excludedTables = excludedTables
 
+	log.Println("pinged database successfully")
 	return &mp, nil
 }
 
-func (mp *MySQLProvider) Initialize() {
+func (mp *SQLProvider) Initialize() {
 	var err error
+
 	err = createMetaChangeLogTable(mp.db, meta_changelog_table)
 	if err != nil {
 		log.Println(err)
@@ -45,43 +51,50 @@ func (mp *MySQLProvider) Initialize() {
 	if err != nil {
 		log.Println(err)
 	}
-	err = createTriggers(mp.db, mp.dbName, meta_changelog_table)
+	err = createTriggers(mp.db, mp.dbName, meta_changelog_table, mp.excludedTables)
 	if err != nil {
 		log.Println(err)
 	}
 
 }
 
-func (mp *MySQLProvider) GetUpdatesForSync() (driver.Responses, error) {
-	log.Println(mp)
-
-	resp := driver.Responses{}
+func (mp *SQLProvider) Sync(syncFunc func(string, string)) error {
 	var err error
 
 	lastSync, err := getLastSync(mp.db, meta_data_table)
 	if err != nil {
 		log.Println(err)
 	}
-
+	//
 	if lastSync == "" {
-		resp, err = mp.getDataForFirstSync()
+		err = mp.performFirstSync(syncFunc)
 		if err != nil {
 			log.Println(err)
 		}
-		return resp, nil
+		return nil
 	}
-	resp, err = mp.getDataForRegularSync(lastSync)
+	err = mp.performRegularSync(lastSync, syncFunc)
 	if err != nil {
 		log.Println(err)
 	}
 
-	return resp, nil
+	return nil
 }
 
-func (mp *MySQLProvider) ConfirmSync() error {
+func (mp *SQLProvider) ConfirmSync() error {
 	err := setLastSyncToNow(mp.db, meta_data_table)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+//Use within performFirstSync to makesure table does not exist in exclude list, also usefull when dealing with triggers
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }

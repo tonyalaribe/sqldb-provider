@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 
-	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
+	_ "github.com/denisenkom/go-mssqldb" //A mysql driver to allow database/sql understand the database
 )
 
 func getJSON(db *sql.DB, sqlString string) (string, error) {

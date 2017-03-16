@@ -1,4 +1,4 @@
-//Package mysqlprovider package exports database access queries, to help decrease clutter in the packages using these queries.
+//Package sqlserverprovider package exports database access queries, to help decrease clutter in the packages using these queries.
 package sqlserverprovider
 
 import (
@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"log"
 
-	_ "github.com/go-sql-driver/mysql" //A mysql driver to allow database/sql understand the database
+	_ "github.com/denisenkom/go-mssqldb" //A mysql driver to allow database/sql understand the database
 )
 
-func createTriggers(db *sql.DB, dbName, TriggerChangelogTable string) error {
+func createTriggers(db *sql.DB, dbName, TriggerChangelogTable string, excludedTables []string) error {
 	tablesAndColumns, err := getAllTablesAndColumns(db, dbName)
 	if err != nil {
 		log.Println(err)
@@ -18,7 +18,8 @@ func createTriggers(db *sql.DB, dbName, TriggerChangelogTable string) error {
 
 	//loop through all tables to set triggers for each of them.
 	for tablename, columns := range tablesAndColumns {
-		if tablename == TriggerChangelogTable {
+
+		if tablename == TriggerChangelogTable || tablename == meta_changelog_table || tablename == meta_data_table || contains(excludedTables, tablename) {
 			continue
 		}
 
@@ -70,7 +71,7 @@ func createInsertTrigger(db *sql.DB, tablename, TriggerChangelogTable, primaryKe
 	query := fmt.Sprintf(`
     DROP TRIGGER %s_insert_trigger;`, tablename)
 
-	_, err := db.Query(query)
+	_, err := db.Exec(query)
 	if err != nil {
 		log.Println(err)
 	}
@@ -82,7 +83,7 @@ func createInsertTrigger(db *sql.DB, tablename, TriggerChangelogTable, primaryKe
         VALUES ('%[1]s',CONCAT(%[3]s),CONCAT(%[4]s),'I');
     `, tablename, TriggerChangelogTable, primaryKeysAndValues, NewColumnValues)
 
-	_, err = db.Query(query)
+	_, err = db.Exec(query)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -95,7 +96,7 @@ func createUpdateTrigger(db *sql.DB, tablename, TriggerChangelogTable, primaryKe
 	query := fmt.Sprintf(`
 			DROP TRIGGER %s_update_trigger;`, tablename)
 
-	_, err := db.Query(query)
+	_, err := db.Exec(query)
 	if err != nil {
 		log.Println(err)
 	}
@@ -107,7 +108,7 @@ func createUpdateTrigger(db *sql.DB, tablename, TriggerChangelogTable, primaryKe
 			    VALUES ('%[1]s',CONCAT(%[3]s),CONCAT(%[4]s),CONCAT(%[5]s), 'U');
       `, tablename, TriggerChangelogTable, primaryKeysAndValues, OldColumnValues, NewColumnValues)
 
-	_, err = db.Query(query)
+	_, err = db.Exec(query)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -120,7 +121,7 @@ func createDeleteTrigger(db *sql.DB, tablename, TriggerChangelogTable, primaryKe
 	query := fmt.Sprintf(`
     DROP TRIGGER %s_delete_trigger;`, tablename)
 
-	_, err := db.Query(query)
+	_, err := db.Exec(query)
 	if err != nil {
 		log.Println(err)
 	}
@@ -132,7 +133,7 @@ func createDeleteTrigger(db *sql.DB, tablename, TriggerChangelogTable, primaryKe
         VALUES ('%[1]s',CONCAT(%[3]s),CONCAT(%[4]s),'D');
     `, tablename, TriggerChangelogTable, primaryKeysAndValues, OldColumnValues)
 
-	_, err = db.Query(query)
+	_, err = db.Exec(query)
 	if err != nil {
 		log.Println(err)
 		return err

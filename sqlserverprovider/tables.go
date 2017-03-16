@@ -1,4 +1,4 @@
-//Package mysqlprovider package exports database access queries, to help decrease clutter in the packages using these queries.
+//Package sqlserverprovider package exports database access queries, to help decrease clutter in the packages using these queries.
 package sqlserverprovider
 
 import (
@@ -10,9 +10,12 @@ import (
 )
 
 //getAllTables returns all tables in a given database, and an error, if unsuccessful
-func getAllTables(db *sql.DB) ([]string, error) {
+func getAllTables(db *sql.DB, dbName string) ([]string, error) {
 	var tables []string
-	rows, err := db.Query("show TABLES")
+
+	query := fmt.Sprintf("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_CATALOG='%s';", dbName)
+
+	rows, err := db.Query(query)
 	if err != nil {
 		log.Fatalf("unable to get tables from database. Error: %+v", err.Error())
 		return tables, err
@@ -21,6 +24,7 @@ func getAllTables(db *sql.DB) ([]string, error) {
 	var tablename string
 	for rows.Next() {
 		err = rows.Scan(&tablename)
+
 		if err != nil { /* error handling. Not sure what kind of errors would return nil when rows.Next() had returned true. TODO: handle error appropriately */
 			log.Fatalf("unable to get tables from database. Error: %+v", err.Error())
 		}
@@ -104,17 +108,16 @@ func getAllPrimaryKeysInTable(db *sql.DB, tablename string) ([]string, error) {
 func createMetaChangeLogTable(db *sql.DB, metaTableName string) error {
 
 	query := fmt.Sprintf(`CREATE TABLE %s(
-		 ID int NOT NULL AUTO_INCREMENT,
+		 ID int NOT NULL identity(1, 1) primary key,
 		 TableName varchar(255),
 		 PrimaryKeys varchar(255),
-		 OldColumnValue LONGTEXT,
-		 NewColumnValue LONGTEXT,
+		 OldColumnValue NTEXT,
+		 NewColumnValue NTEXT,
 		 TriggerType varchar(10),
-		 ActionDate datetime NOT NULL DEFAULT NOW(),
-		 PRIMARY KEY(ID)
+		 ActionDate datetime NOT NULL DEFAULT GETDATE()
 	);`, metaTableName)
 
-	_, err := db.Query(query)
+	_, err := db.Exec(query)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -129,7 +132,7 @@ func createMetaDataTable(db *sql.DB, metaDataTable string) error {
 			 PRIMARY KEY(DataKey)
 		);`, metaDataTable)
 
-	_, err := db.Query(query)
+	_, err := db.Exec(query)
 	if err != nil {
 		log.Println(err)
 		// return err
@@ -137,7 +140,7 @@ func createMetaDataTable(db *sql.DB, metaDataTable string) error {
 	query = fmt.Sprintf(`INSERT INTO %s (DataKey)
 			 VALUES ('last_sync');`, metaDataTable)
 
-	_, err = db.Query(query)
+	_, err = db.Exec(query)
 	if err != nil {
 		log.Println(err)
 		// return err
