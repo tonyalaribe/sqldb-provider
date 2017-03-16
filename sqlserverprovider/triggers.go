@@ -9,7 +9,7 @@ import (
 	_ "github.com/denisenkom/go-mssqldb" //A mysql driver to allow database/sql understand the database
 )
 
-func createTriggers(db *sql.DB, dbName, TriggerChangelogTable string) error {
+func createTriggers(db *sql.DB, dbName, TriggerChangelogTable string, excludedTables []string) error {
 	tablesAndColumns, err := getAllTablesAndColumns(db, dbName)
 	if err != nil {
 		log.Println(err)
@@ -18,7 +18,8 @@ func createTriggers(db *sql.DB, dbName, TriggerChangelogTable string) error {
 
 	//loop through all tables to set triggers for each of them.
 	for tablename, columns := range tablesAndColumns {
-		if tablename == TriggerChangelogTable {
+
+		if tablename == TriggerChangelogTable || tablename == meta_changelog_table || tablename == meta_data_table || contains(excludedTables, tablename) {
 			continue
 		}
 

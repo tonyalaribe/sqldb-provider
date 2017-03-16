@@ -43,7 +43,10 @@ func (mp *SQLProvider) performFirstSync(sync func(string, string)) error {
 	}
 
 	for _, table := range tables {
+
 		if table == meta_changelog_table || table == meta_data_table {
+			continue
+		} else if contains(mp.excludedTables, table) {
 			continue
 		}
 
