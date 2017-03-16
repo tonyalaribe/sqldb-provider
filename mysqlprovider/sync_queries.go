@@ -7,27 +7,40 @@ import (
 	"strconv"
 )
 
-func (mp *MySQLProvider) performRegularSync(lastSync string, sync func(string, string)) error {
+func (mp *SQLProvider) performRegularSync(lastSync string, sync func(string, string)) error {
+	perPage := mp.perPage
+	countRow := mp.db.QueryRow("SELECT count(*) FROM " + meta_changelog_table + " WHERE ActionDate > '" + lastSync + "'")
 
-	tableJSON, err := getJSON(mp.db, "SELECT * FROM "+meta_changelog_table+" WHERE ActionDate > '"+lastSync+"'")
+	var count int
+	err := countRow.Scan(&count)
 	if err != nil {
-		log.Printf("unable to convert table data to json. Error: %+v", err)
+		log.Println(err)
 	}
 
-	sync(tableJSON, meta_changelog_table)
+	pages := count / perPage
+	for i := 0; i < pages; i++ {
+		startInt := i * perPage
+		start := strconv.Itoa(startInt)
+		end := strconv.Itoa(startInt + perPage)
+
+		tableJSON, err := getJSON(mp.db, "SELECT * FROM "+meta_changelog_table+" WHERE ActionDate > '"+lastSync+"' "+" limit "+start+","+end)
+		if err != nil {
+			log.Printf("unable to convert table data to json. Error: %+v", err)
+		}
+
+		sync(tableJSON, meta_changelog_table)
+	}
 
 	return nil
 }
 
-func (mp *MySQLProvider) performFirstSync(sync func(string, string)) error {
+func (mp *SQLProvider) performFirstSync(sync func(string, string)) error {
 	perPage := mp.perPage
 	tables, err := getAllTables(mp.db)
 	if err != nil {
 		log.Printf("unable to get dataBases. Error: %+v", err.Error())
 		return err
 	}
-	//decalared outside the loop to prevent excessive heap allocations
-	//var dat []map[string]interface{}
 
 	for _, table := range tables {
 		if table == meta_changelog_table || table == meta_data_table {
@@ -47,7 +60,7 @@ func (mp *MySQLProvider) performFirstSync(sync func(string, string)) error {
 			startInt := i * perPage
 			start := strconv.Itoa(startInt)
 			end := strconv.Itoa(startInt + perPage)
-			tableJSON, err := getJSON(mp.db, "select * from "+table+" limit "+start+","+end) //TODO: modify limits to serve as pagination
+			tableJSON, err := getJSON(mp.db, "select * from "+table+" limit "+start+","+end)
 			if err != nil {
 				log.Printf("unable to convert table data to json. Error: %+v", err)
 			}

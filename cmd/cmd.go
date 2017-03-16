@@ -7,6 +7,7 @@ import (
 
 	"gitlab.com/middlefront/sqldb-provider/driver"
 	"gitlab.com/middlefront/sqldb-provider/mysqlprovider"
+	"gitlab.com/middlefront/sqldb-provider/sqlserverprovider"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -22,6 +23,7 @@ type Config struct {
 	dbName             string
 	cluster            string
 	natsURL            string
+	perPage            int
 }
 
 var (
@@ -87,21 +89,23 @@ func initConfig() {
 
 	config.cluster = viper.GetString("nats-cluster")
 	config.natsURL = viper.GetString("nats-url")
+	config.perPage = viper.GetInt("per-page")
 
 	switch config.dbType {
 	case "mysql":
-		sqldb, err := mysqlprovider.New(config.dbType, config.dbConnectionString, config.dbName)
+		sqldb, err := mysqlprovider.New(config.dbType, config.dbConnectionString, config.dbName, config.perPage)
 		if err != nil {
 			log.Fatal(err)
 		}
 		dbprovider = driver.SQLProvider(sqldb)
 		break
-	// case "sqlserver":
-	// 	sqldb, err := sqlserverprovider.New(config.dbType, config.dbConnectionString, config.dbName)
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	dbprovider = driver.SQLProvider(sqldb)
+	case "sqlserver":
+		sqldb, err := sqlserverprovider.New(config.dbType, config.dbConnectionString, config.dbName, config.perPage)
+		if err != nil {
+			log.Fatal(err)
+		}
+		dbprovider = driver.SQLProvider(sqldb)
+		break
 	default:
 		log.Fatal("unknown database Type: " + config.dbType)
 	}
