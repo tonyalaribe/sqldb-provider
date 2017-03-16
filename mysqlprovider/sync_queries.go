@@ -40,7 +40,7 @@ func (mp *MySQLProvider) getDataForFirstSync() (driver.Responses, error) {
 			continue
 		}
 
-		tableJSON, err := getJSON(mp.db, "select * from "+table)
+		tableJSON, err := getJSON(mp.db, "select * from "+table+" limit 1")
 		if err != nil {
 			log.Printf("unable to convert table data to json. Error: %+v", err)
 		}
@@ -60,7 +60,7 @@ func setLastSyncToNow(db *sql.DB, metaDataTable string) error {
 			 DataValue = NOW()
 			 WHERE DataKey='last_sync';`, metaDataTable)
 
-	_, err := db.Query(query)
+	_, err := db.Exec(query)
 	if err != nil {
 		log.Println(err)
 		return err

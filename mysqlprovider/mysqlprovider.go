@@ -58,19 +58,25 @@ func (mp *MySQLProvider) GetUpdatesForSync() (driver.Responses, error) {
 	resp := driver.Responses{}
 	var err error
 
-	lastSync, err := getLastSync(mp.db, meta_data_table)
-	if err != nil {
-		log.Println(err)
-	}
+	// lastSync, err := getLastSync(mp.db, meta_data_table)
+	// if err != nil {
+	// 	log.Println(err)
+	// }
+	// //
+	// if lastSync == "" {
+	// 	resp, err = mp.getDataForFirstSync()
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 	}
+	// 	return resp, nil
+	// }
+	// resp, err = mp.getDataForRegularSync(lastSync)
+	// if err != nil {
+	// 	log.Println(err)
+	// }
 
-	if lastSync == "" {
-		resp, err = mp.getDataForFirstSync()
-		if err != nil {
-			log.Println(err)
-		}
-		return resp, nil
-	}
-	resp, err = mp.getDataForRegularSync(lastSync)
+	//TODO: DELETE for debug purposes
+	resp, err = mp.getDataForFirstSync()
 	if err != nil {
 		log.Println(err)
 	}

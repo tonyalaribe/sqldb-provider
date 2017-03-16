@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// serveCmd represents the serve command
+// serveCmd represents the serve command, which periodically polls the database for updates
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Starts the process to run scheduled queries to publish to Middle",
